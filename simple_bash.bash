@@ -7,8 +7,8 @@ git clone git@github.com:YOUR_USERNAME/cloudnative-platform.git
 cd cloudnative-platform
  
 # 3. Set your identity (if not global)
-git config user.name "Your Name"
-git config user.email "you@email.com"
+git config user.name "pscode8"
+git config user.email "npartha2201@gmail.com"
  
 # 4. Create the base folder structure (all at once)
 mkdir -p apps/api/src apps/api/tests \
