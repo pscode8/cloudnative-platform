@@ -1,23 +1,17 @@
-version: "3.9"
- 
-x-common: &common
-  restart: unless-stopped
-  networks:
-    - platform
- 
 services:
   api:
     build:
       context: ./apps/api
       target: dev
-    <<: *common
+    restart: unless-stopped
+    networks:
+      - platform
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://appuser:apppass@postgres:5432/appdb
       REDIS_URL: redis://redis:6379/0
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       ENV: dev
       LOG_LEVEL: DEBUG
     volumes:
@@ -32,10 +26,12 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
- 
+
   postgres:
     image: postgres:16-alpine
-    <<: *common
+    restart: unless-stopped
+    networks:
+      - platform
     ports:
       - "5432:5432"
     environment:
@@ -49,10 +45,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
- 
+
   redis:
     image: redis:7-alpine
-    <<: *common
+    restart: unless-stopped
+    networks:
+      - platform
     ports:
       - "6379:6379"
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -60,17 +58,21 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
- 
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
-    <<: *common
+    restart: unless-stopped
+    networks:
+      - platform
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
- 
+
   kafka:
     image: confluentinc/cp-kafka:7.6.0
-    <<: *common
+    restart: unless-stopped
+    networks:
+      - platform
     ports:
       - "9092:9092"
     environment:
@@ -81,35 +83,40 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
- 
-  prometheus:
-    image: prom/prometheus:v2.51.0
-    <<: *common
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
- 
-  grafana:
-    image: grafana/grafana:10.4.0
-    <<: *common
-    ports:
-      - "3001:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - grafana_data:/var/lib/grafana
- 
+
+  # ── Observability (uncomment when ready for Phase 5) ──────────
+  # prometheus:
+  #   image: prom/prometheus:v2.51.0
+  #   restart: unless-stopped
+  #   networks:
+  #     - platform
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+
+  # grafana:
+  #   image: grafana/grafana:10.4.0
+  #   restart: unless-stopped
+  #   networks:
+  #     - platform
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     GF_SECURITY_ADMIN_PASSWORD: admin
+  #     GF_USERS_ALLOW_SIGN_UP: "false"
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+
 networks:
   platform:
     driver: bridge
- 
+
 volumes:
   postgres_data:
-  prometheus_data:
-  grafana_data:
+  # prometheus_data:
+  # grafana_data:
