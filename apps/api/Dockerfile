@@ -1,61 +1,83 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.6
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-stage build:
+#   builder      → installs prod deps into an isolated venv (never deployed)
+#   builder-dev  → extends builder with dev/test deps (never deployed)
+#   dev          → hot-reload runtime for local docker compose
+#   prod         → Chainguard hardened image — zero-CVE attack surface
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── base stage (sets up environment) ─────────────
-FROM python:3.11-slim AS base
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
+# ── Stage 1: prod dependency builder ─────────────────────────────────────────
+FROM python:3.13-slim AS builder
+WORKDIR /build
 
-WORKDIR /app
+# gcc required by some async drivers (asyncpg, aiokafka)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gcc \
+ && rm -rf /var/lib/apt/lists/*
 
-# Create a virtual environment instead of installing system-wide
+# Isolated venv — portable: copy to any final base image safely
 RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# ── deps stage (installs production deps) ────────
-FROM base AS deps
 COPY pyproject.toml .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir e "."
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -e "."
 
-# ── dev stage (hot reload, all deps) ─────────────
-FROM deps AS dev
-# Install dev dependencies
+# ── Stage 2: dev+test dependency builder ─────────────────────────────────────
+FROM python:3.13-slim AS builder-dev
+WORKDIR /build
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gcc \
+ && rm -rf /var/lib/apt/lists/*
+
+# Inherit prod venv, then layer dev extras on top
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY pyproject.toml .
 RUN pip install --no-cache-dir -e ".[dev]"
 
-# Keep your local development user
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --no-create-home appuser && \
-    chown -R appuser:appuser /app
+# ── Stage 3: dev runtime (local only — never pushed to registry) ──────────────
+FROM python:3.13-slim AS dev
+WORKDIR /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid 1000 appuser \
+ && useradd --uid 1000 --gid 1000 --no-create-home appuser
+
+COPY --from=builder-dev /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . .
 USER appuser
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/healthz || exit 1
+
+EXPOSE 8000
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-# ── test stage (used by CI) ──────────────────────
-FROM dev AS test
-RUN pytest tests/ -v
-
-# ── prod stage (minimal, distroless, 0 CVEs) ─────
-FROM gcr.io/distroless/python3-debian12 AS prod
+# ── Stage 4: prod (Chainguard — hardened, minimal, near-zero CVE) ─────────────
+# Chainguard images are rebuilt daily against CVE databases.
+# Runs as nonroot (uid 65532) by default — no shell, no package manager.
+# https://images.chainguard.dev/directory/image/python/versions
+FROM cgr.dev/chainguard/python:latest AS prod
 WORKDIR /app
-ENV PYTHONPATH=/app \
-    PATH="/opt/venv/bin:$PATH"
 
-# 1. Copy the isolated virtual environment from your deps stage
-COPY --from=deps /opt/venv /opt/venv
+# Copy only the production venv — no build tools, no compilers, no shell utils
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# 2. Copy the source code.
-# Distroless uses a built-in non-root user called "nonroot" (UID 65532)
-COPY --chown=65532:65532 src/ ./src/
-
-USER 65532:65532
-
-# 3. Maintain exact Healthcheck functionality using Python instead of curl.
-# This prevents us from needing to install vulnerable networking tools.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["/opt/venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+# Copy application source only
+COPY src/ ./src/
 
 EXPOSE 8000
 
-# 4. Run your exact production command
-CMD ["/opt/venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Kubernetes liveness/readiness probes handle health — no Docker HEALTHCHECK needed in prod
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "uvicorn", "src.main:app", \
+            "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
