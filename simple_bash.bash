@@ -3,7 +3,7 @@
 #    Visibility: Public  ← this matters for your portfolio
  
 # 2. Clone locally
-git clone git@github.com:YOUR_USERNAME/cloudnative-platform.git
+git clone git@github.com:pscode8/cloudnative-platform.git
 cd cloudnative-platform
  
 # 3. Set your identity (if not global)
