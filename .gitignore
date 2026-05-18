@@ -1,16 +1,22 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 *.egg-info/
 dist/
+build/
 .pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
  
 # Node
 node_modules/
 .next/
 dist/
 build/
+.npm/
  
 # Terraform
 .terraform/
@@ -18,21 +24,34 @@ build/
 *.tfstate.backup
 *.tfplan
 .terraform.lock.hcl
+crash.log
  
-# Secrets — NEVER commit these
+# Secrets — NEVER commit
 .env
 .env.*
 !.env.example
 *.pem
 *.key
+*.p12
 kubeconfig
 vault-token
+.aws/
  
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
  
 # IDE
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
+ 
+# Docker
+.dockerignore
+ 
+# Logs
+*.log
+logs/
