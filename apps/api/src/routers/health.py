@@ -1,12 +1,13 @@
 """Health check endpoints for Kubernetes probes."""
+
 from fastapi import APIRouter, status
 from sqlalchemy import text
- 
+
 from src.database import AsyncSessionLocal
- 
+
 router = APIRouter()
- 
- 
+
+
 @router.get("/healthz", status_code=status.HTTP_200_OK)
 async def liveness():
     """
@@ -14,8 +15,8 @@ async def liveness():
     K8s restarts the pod if this fails.
     """
     return {"status": "ok"}
- 
- 
+
+
 @router.get("/readyz", status_code=status.HTTP_200_OK)
 async def readiness():
     """

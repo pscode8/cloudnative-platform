@@ -10,14 +10,14 @@ build/
 .coverage
 coverage.xml
 htmlcov/
- 
+
 # Node
 node_modules/
 .next/
 dist/
 build/
 .npm/
- 
+
 # Terraform
 .terraform/
 *.tfstate
@@ -25,7 +25,7 @@ build/
 *.tfplan
 .terraform.lock.hcl
 crash.log
- 
+
 # Secrets — NEVER commit
 .env
 .env.*
@@ -36,22 +36,22 @@ crash.log
 kubeconfig
 vault-token
 .aws/
- 
+
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
- 
+
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
- 
+
 # Docker
 .dockerignore
- 
+
 # Logs
 *.log
 logs/

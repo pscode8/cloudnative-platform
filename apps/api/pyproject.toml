@@ -1,7 +1,7 @@
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
- 
+
 [project]
 name = "cloudnative-api"
 version = "0.1.0"
@@ -23,7 +23,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.0.0",
     "structlog>=24.1.0",
 ]
- 
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
@@ -33,20 +33,20 @@ dev = [
     "testcontainers[postgresql,redis]>=4.0.0",
     "factory-boy>=3.3.0",
 ]
- 
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v --cov=src --cov-report=term-missing --cov-fail-under=70"
- 
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
- 
+
 [tool.isort]
 profile = "black"
 line_length = 100
- 
+
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]

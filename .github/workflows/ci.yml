@@ -1,14 +1,14 @@
 name: CI
- 
+
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
- 
+
 env:
   PYTHON_VERSION: "3.11"
- 
+
 jobs:
   lint:
     name: Lint
@@ -24,7 +24,7 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
       - run: pip install pre-commit
       - run: pre-commit run --all-files
- 
+
   test-api:
     name: Test API
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
         with:
           file: apps/api/coverage.xml
           fail_ci_if_error: false
- 
+
   build-scan:
     name: Build and Scan
     runs-on: ubuntu-latest

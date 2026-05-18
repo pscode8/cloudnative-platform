@@ -1,12 +1,14 @@
 """Shared pytest fixtures."""
-import pytest
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.main import app
+import pytest  # noqa: F401
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+# ← THIS is the fix — must import models before create_all to register tables with SQLAlchemy
+import src.models.product  # noqa: F401
 from src.database import Base, get_db
-import src.models.product  # ← THIS is the fix — must import models before create_all
+from src.main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -36,9 +38,6 @@ async def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()

@@ -1,6 +1,9 @@
 """Structured logging setup with structlog."""
+
 import logging
+
 import structlog
+
 from src.config import settings
 
 
@@ -18,9 +21,7 @@ def setup_logging() -> None:
     ]
 
     if settings.ENV == "dev":
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer(colors=True)
-        ]
+        processors = shared_processors + [structlog.dev.ConsoleRenderer(colors=True)]
     else:
         processors = shared_processors + [
             structlog.processors.JSONRenderer(),
