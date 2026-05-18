@@ -64,7 +64,7 @@ jobs:
         with:
           image-ref: cloudnative/api:ci
           format: table
-          severity: CRITICAL, HIGH
+          severity: CRITICAL,HIGH
           exit-code: 1
           trivyignores: apps/api/.trivyignore
       - name: Push to GHCR
