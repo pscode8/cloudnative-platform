@@ -3,7 +3,7 @@
 # Pods are ephemeral — they die and get new IPs constantly.
 # Service IP never changes — other services always find it.
 # DNS: cloudnative-api.default.svc.cluster.local
- 
+
 apiVersion: v1
 kind: Service
 metadata:

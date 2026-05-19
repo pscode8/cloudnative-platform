@@ -5,7 +5,7 @@
 # RULE: ConfigMap = non-sensitive config (URLs, feature flags, log levels)
 #       Secret / ExternalSecret = sensitive (passwords, API keys, tokens)
 # Violating this rule = credentials in git history = breach.
- 
+
 apiVersion: v1
 kind: ConfigMap
 metadata:

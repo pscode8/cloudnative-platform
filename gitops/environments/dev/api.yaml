@@ -10,7 +10,7 @@
 # 5. ArgoCD detects git change, syncs to cluster
 # 6. New pods roll out with zero downtime
 # 7. Full audit trail in git — who deployed what when
- 
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -20,7 +20,7 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: cloudnative
- 
+
   source:
     repoURL: https://github.com/pscode8/cloudnative-platform
     targetRevision: main
@@ -33,11 +33,11 @@ spec:
         # CI updates this on every deploy
         - name: image.tag
           value: "latest"  # CI replaces with: sha-abc123f
- 
+
   destination:
     server: https://kubernetes.default.svc
     namespace: cloudnative-dev
- 
+
   syncPolicy:
     automated:
       prune: true

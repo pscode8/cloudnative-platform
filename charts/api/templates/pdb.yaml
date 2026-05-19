@@ -7,7 +7,7 @@
 # Your service stays available during the entire maintenance window.
 #
 # Without PDB: k8s could evict all pods simultaneously = downtime.
- 
+
 {{- if .Values.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget

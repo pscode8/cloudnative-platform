@@ -5,7 +5,7 @@
 #
 # Requires: metrics-server installed in cluster (we install below)
 # Advanced: In Phase 3 we also add KEDA for Kafka-based scaling
- 
+
 {{- if .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

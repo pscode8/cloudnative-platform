@@ -5,7 +5,7 @@
 #
 # Install command (run once when cluster is created):
 # helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx #   --namespace ingress-nginx #   --create-namespace #   -f k8s/cluster-addons/ingress-nginx.yaml
- 
+
 controller:
   # AWS NLB (Network Load Balancer) — handles millions of requests/sec
   # NLB vs ALB: NLB is L4 (faster), ALB is L7 (more features)
@@ -15,16 +15,16 @@ controller:
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: nlb
       service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
- 
+
   # Run 2 replicas of nginx controller — HA
   replicaCount: 2
- 
+
   # Metrics for Prometheus (Phase 5)
   metrics:
     enabled: true
     serviceMonitor:
       enabled: true
- 
+
   # Resource limits for the controller itself
   resources:
     requests:
@@ -33,7 +33,7 @@ controller:
     limits:
       cpu: 500m
       memory: 512Mi
- 
+
   # Config for nginx itself
   config:
     # Enable real IP passthrough — logs show client IP not NLB IP

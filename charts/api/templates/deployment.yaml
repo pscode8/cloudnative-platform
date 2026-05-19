@@ -3,7 +3,7 @@
 # Deployment → ReplicaSet → Pod(s)
 # Rolling update strategy: brings up new pods before killing old ones.
 # Zero downtime deployments — no maintenance windows needed.
- 
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,11 +16,11 @@ spec:
   {{- end }}
   # HPA manages replicas when autoscaling.enabled=true
   # If we set replicas here AND HPA exists, they fight each other
- 
+
   selector:
     matchLabels:
       {{- include "cloudnative-api.selectorLabels" . | nindent 6 }}
- 
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -28,7 +28,7 @@ spec:
       maxUnavailable: 0  # Never kill old pod before new one is Ready
       # Result: during deploy, briefly have replicaCount+1 pods running
       # Zero downtime guaranteed
- 
+
   template:
     metadata:
       labels:
@@ -39,7 +39,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "cloudnative-api.serviceAccountName" . }}
- 
+
       # Security context — applied to ALL containers in pod
       # runAsNonRoot: container cannot run as root (UID 0)
       # This stops privilege escalation attacks
@@ -47,7 +47,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
- 
+
       # Spread pods across nodes and AZs for resilience
       topologySpreadConstraints:
         - maxSkew: 1
@@ -56,17 +56,17 @@ spec:
           labelSelector:
             matchLabels:
               {{- include "cloudnative-api.selectorLabels" . | nindent 14 }}
- 
+
       containers:
         - name: api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
- 
+
           ports:
             - name: http
               containerPort: 8000
               protocol: TCP
- 
+
           # Container-level security
           securityContext:
             allowPrivilegeEscalation: false  # Cannot gain more privileges
@@ -74,16 +74,16 @@ spec:
             capabilities:
               drop:
                 - ALL  # Drop ALL Linux capabilities — least privilege
- 
+
           # Environment from ConfigMap
           envFrom:
             - configMapRef:
                 name: {{ include "cloudnative-api.fullname" . }}-config
- 
+
           # Resource limits — CRITICAL for cluster stability
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
- 
+
           # Liveness probe — restart pod if app is deadlocked
           livenessProbe:
             httpGet:
@@ -92,7 +92,7 @@ spec:
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
             failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
- 
+
           # Readiness probe — remove from load balancer if not ready
           # Prevents traffic routing to pods still warming up
           readinessProbe:
@@ -102,7 +102,7 @@ spec:
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
- 
+
           # Startup probe — gives slow apps time to start
           # liveness does NOT run until startup probe succeeds
           startupProbe:
@@ -111,19 +111,19 @@ spec:
               port: http
             failureThreshold: {{ .Values.probes.startup.failureThreshold }}
             periodSeconds: {{ .Values.probes.startup.periodSeconds }}
- 
+
           # Writable temp directory — needed since rootFilesystem is read-only
           volumeMounts:
             - name: tmp
               mountPath: /tmp
- 
+
       volumes:
         - name: tmp
           emptyDir: {}
- 
+
       # Graceful shutdown — give app 30s to finish in-flight requests
       terminationGracePeriodSeconds: 30
- 
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

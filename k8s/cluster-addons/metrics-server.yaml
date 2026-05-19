@@ -5,14 +5,14 @@
 #
 # Install:
 # helm upgrade --install metrics-server metrics-server/metrics-server #   --namespace kube-system #   -f k8s/cluster-addons/metrics-server.yaml
- 
+
 args:
   - --cert-dir=/tmp
   - --secure-port=4443
   - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
   - --kubelet-use-node-status-port
   - --metric-resolution=15s  # Collect metrics every 15 seconds
- 
+
 resources:
   requests:
     cpu: 100m

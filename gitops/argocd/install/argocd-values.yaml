@@ -5,12 +5,12 @@
 # Audit trail: every deployment is a git commit with author + timestamp.
 #
 # Install: helm install argocd argo/argo-cd -n argocd -f this-file.yaml
- 
+
 global:
   # Image tag pinned — never use latest in production tooling
   image:
     tag: "v2.11.0"
- 
+
 server:
   # Expose ArgoCD UI via ingress
   ingress:
@@ -26,18 +26,18 @@ server:
       - secretName: argocd-tls
         hosts:
           - argocd.cloudnative.dev
- 
+
   # Metrics for Prometheus scraping (Phase 5)
   metrics:
     enabled: true
     serviceMonitor:
       enabled: true
- 
+
 configs:
   params:
     # Disable TLS on server — nginx handles TLS termination
     server.insecure: true
- 
+
   # RBAC — who can do what in ArgoCD
   rbac:
     policy.default: role:readonly  # Default: everyone can view
@@ -46,11 +46,11 @@ configs:
       p, role:admin, applications, *, */*, allow
       p, role:admin, clusters, *, *, allow
       g, devops-team, role:admin
- 
+
 repoServer:
   metrics:
     enabled: true
- 
+
 applicationSet:
   metrics:
     enabled: true
