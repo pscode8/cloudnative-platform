@@ -18,7 +18,7 @@ terraform {
 }
 
 variable "project_name" { type = string }
-variable "environment"  { type = string }
+variable "environment" { type = string }
 variable "repositories" {
   description = "List of repository names to create"
   type        = list(string)
@@ -39,11 +39,11 @@ resource "aws_ecr_repository" "repos" {
   # Production deployments always reference exact immutable digests.
 
   image_scanning_configuration {
-    scan_on_push = true  # Trivy-style scan on every push — catches CVEs early
+    scan_on_push = true # Trivy-style scan on every push — catches CVEs early
   }
 
   encryption_configuration {
-    encryption_type = "KMS"  # Images encrypted with KMS, not default AES
+    encryption_type = "KMS" # Images encrypted with KMS, not default AES
   }
 
   tags = merge(var.tags, {

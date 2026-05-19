@@ -10,5 +10,5 @@ output "repository_arns" {
 
 output "registry_id" {
   description = "AWS account ID of the registry"
-  value = values(aws_ecr_repository.repos)[0].registry_id
+  value       = values(aws_ecr_repository.repos)[0].registry_id
 }

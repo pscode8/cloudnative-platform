@@ -30,7 +30,7 @@ terraform {
 resource "random_password" "db" {
   length           = 32
   special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"  # Exclude chars that break conn strings
+  override_special = "!#$%&*()-_=+[]{}<>:?" # Exclude chars that break conn strings
 }
 
 # ── Secrets Manager ──────────────────────────────────────────────
@@ -40,7 +40,7 @@ resource "random_password" "db" {
 resource "aws_secretsmanager_secret" "db" {
   name                    = "${var.project_name}/${var.environment}/db"
   description             = "RDS PostgreSQL credentials"
-  recovery_window_in_days = 7  # 7-day window before permanent deletion
+  recovery_window_in_days = 7 # 7-day window before permanent deletion
 
   tags = var.tags
 }
@@ -85,7 +85,7 @@ resource "aws_security_group" "rds" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]  # Only VPC internal traffic
+    cidr_blocks = [var.vpc_cidr] # Only VPC internal traffic
     # NOT 0.0.0.0/0 — that would be internet accessible
   }
 
@@ -111,23 +111,23 @@ resource "aws_db_parameter_group" "main" {
   name   = "${var.project_name}-${var.environment}-pg16"
   family = "postgres${var.postgres_version}"
 
-parameter {
-  name         = "log_connections"
-  value        = "1"
-  apply_method = "pending-reboot"   # ← add this
-}
+  parameter {
+    name         = "log_connections"
+    value        = "1"
+    apply_method = "pending-reboot" # ← add this
+  }
 
-parameter {
-  name         = "log_disconnections"
-  value        = "1"
-  apply_method = "pending-reboot"   # ← add this
-}
+  parameter {
+    name         = "log_disconnections"
+    value        = "1"
+    apply_method = "pending-reboot" # ← add this
+  }
 
-parameter {
-  name         = "shared_preload_libraries"
-  value        = "pg_stat_statements"
-  apply_method = "pending-reboot"   # ← add this
-}
+  parameter {
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
+    apply_method = "pending-reboot" # ← add this
+  }
 
   tags = var.tags
 }
@@ -140,8 +140,8 @@ resource "aws_db_instance" "main" {
   instance_class = var.instance_class
 
   allocated_storage     = var.allocated_storage_gb
-  max_allocated_storage = var.allocated_storage_gb * 5  # Autoscale up to 5x
-  storage_type          = "gp3"  # gp3 = faster and cheaper than gp2
+  max_allocated_storage = var.allocated_storage_gb * 5 # Autoscale up to 5x
+  storage_type          = "gp3"                        # gp3 = faster and cheaper than gp2
 
   db_name  = var.database_name
   username = "appuser"
@@ -159,7 +159,7 @@ resource "aws_db_instance" "main" {
 
   # Automated daily backups
   backup_retention_period = var.backup_retention_days
-  backup_window           = "03:00-04:00"  # 3-4 AM UTC — low traffic
+  backup_window           = "03:00-04:00" # 3-4 AM UTC — low traffic
 
   # Maintenance window for OS/engine patches
   maintenance_window = "Mon:04:00-Mon:05:00"

@@ -22,7 +22,7 @@ terraform {
 # ── VPC ──────────────────────────────────────────────────────────
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true  # required for EKS — nodes need DNS
+  enable_dns_hostnames = true # required for EKS — nodes need DNS
   enable_dns_support   = true
 
   tags = merge(var.tags, {
@@ -117,7 +117,7 @@ resource "aws_eip" "nat" {
 # For prod: always use managed NAT Gateway — it's HA and patched.
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id  # NAT lives in first public subnet
+  subnet_id     = aws_subnet.public[0].id # NAT lives in first public subnet
 
   tags = merge(var.tags, {
     Name        = "${var.project_name}-${var.environment}-nat"
@@ -185,7 +185,7 @@ resource "aws_route_table_association" "private" {
 # Attack scenario: someone portscanning your VPC → shows in flow logs.
 resource "aws_flow_log" "main" {
   vpc_id          = aws_vpc.main.id
-  traffic_type    = "ALL"  # ACCEPT + REJECT — see both allowed and blocked
+  traffic_type    = "ALL" # ACCEPT + REJECT — see both allowed and blocked
   iam_role_arn    = aws_iam_role.flow_log.arn
   log_destination = aws_cloudwatch_log_group.flow_log.arn
 
@@ -198,7 +198,7 @@ resource "aws_flow_log" "main" {
 
 resource "aws_cloudwatch_log_group" "flow_log" {
   name              = "/aws/vpc/${var.project_name}-${var.environment}"
-  retention_in_days = 30  # Keep 30 days — balance cost vs audit needs
+  retention_in_days = 30 # Keep 30 days — balance cost vs audit needs
 
   tags = var.tags
 }

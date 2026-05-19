@@ -13,7 +13,7 @@ output "cluster_endpoint" {
 output "cluster_ca_certificate" {
   description = "Base64 encoded CA certificate — kubectl uses to verify server"
   value       = aws_eks_cluster.main.certificate_authority[0].data
-  sensitive   = true  # Marked sensitive — won't show in plan output
+  sensitive   = true # Marked sensitive — won't show in plan output
 }
 
 output "oidc_provider_arn" {

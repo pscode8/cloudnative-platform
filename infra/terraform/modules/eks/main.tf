@@ -50,9 +50,9 @@ resource "aws_eks_cluster" "main" {
 
   vpc_config {
     subnet_ids              = var.private_subnet_ids
-    endpoint_private_access = true   # kubectl works from inside VPC
-    endpoint_public_access  = false  # SECURITY: API server not on internet
-                                     # Attackers can't find or scan it
+    endpoint_private_access = true  # kubectl works from inside VPC
+    endpoint_public_access  = false # SECURITY: API server not on internet
+    # Attackers can't find or scan it
   }
 
   # Envelope encryption for Kubernetes secrets
@@ -86,7 +86,7 @@ resource "aws_eks_cluster" "main" {
 resource "aws_kms_key" "eks" {
   description             = "${var.project_name} ${var.environment} EKS secrets encryption"
   deletion_window_in_days = 7
-  enable_key_rotation     = true  # Rotate annually — security best practice
+  enable_key_rotation     = true # Rotate annually — security best practice
 
   tags = var.tags
 }
@@ -139,7 +139,7 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project_name}-${var.environment}-nodes"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = var.private_subnet_ids  # Nodes in PRIVATE subnets
+  subnet_ids      = var.private_subnet_ids # Nodes in PRIVATE subnets
 
   instance_types = var.node_group_config.instance_types
   disk_size      = var.node_group_config.disk_size_gb

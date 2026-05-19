@@ -13,6 +13,6 @@ terraform {
     key            = "global/terraform.tfstate"
     region         = "us-east-2"
     dynamodb_table = "cloudnative-terraform-lock"
-    encrypt        = true  # AES-256 encryption at rest
+    encrypt        = true # AES-256 encryption at rest
   }
 }
