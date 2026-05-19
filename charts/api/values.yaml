@@ -1,0 +1,122 @@
+# ── Default Chart Values ─────────────────────────────────────────
+# These are defaults — safe for all environments.
+# Override per environment in values-dev.yaml / values-prod.yaml
+# Principle: prod values should be STRICTER than dev defaults.
+ 
+replicaCount: 2  # Always run >= 2 replicas for HA — never 1 in production
+ 
+image:
+  repository: ""  # Set per environment: <account>.dkr.ecr.<region>.amazonaws.com/cloudnative/api
+  tag: "latest"   # Override with exact SHA in CI: sha-abc123f
+  pullPolicy: IfNotPresent
+ 
+# Service — exposes pods inside the cluster
+service:
+  type: ClusterIP   # Internal only — ingress handles external traffic
+  port: 80
+  targetPort: 8000  # FastAPI runs on 8000
+ 
+# Ingress — routes external traffic to this service
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # cert-manager automatically provisions TLS certificate
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.cloudnative.dev  # Override per environment
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: api-tls
+      hosts:
+        - api.cloudnative.dev
+ 
+# Resource limits — ALWAYS set these.
+# Without limits: one buggy pod can consume all node resources
+# and starve other pods. This is a common k8s production incident.
+resources:
+  requests:         # Guaranteed resources — used for scheduling
+    cpu: 100m       # 100 millicores = 0.1 CPU
+    memory: 128Mi
+  limits:           # Hard ceiling — pod killed if exceeded
+    cpu: 500m       # 0.5 CPU
+    memory: 512Mi
+ 
+# Horizontal Pod Autoscaler — scales pods based on CPU/memory
+# When CPU > 70%: add pods. When CPU < 70% for 5min: remove pods.
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+ 
+# Kubernetes probes — how k8s knows if your pod is healthy
+# liveness: is the process alive? Restart if failing.
+# readiness: can it serve traffic? Remove from LB if failing.
+# startup: give slow-starting apps time before liveness kicks in.
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    failureThreshold: 3
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  startup:
+    path: /healthz
+    failureThreshold: 30   # 30 * 10s = 5 min max startup time
+    periodSeconds: 10
+ 
+# Pod Disruption Budget — minimum pods that must stay running
+# during voluntary disruptions (node upgrades, scaling down).
+# Prevents: k8s draining all pods at once during cluster upgrade.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+ 
+# Environment variables injected into the container
+env:
+  ENV: "dev"
+  LOG_LEVEL: "INFO"
+  OTEL_SERVICE_NAME: "cloudnative-api"
+ 
+# Secrets loaded from AWS Secrets Manager via External Secrets Operator
+# In Phase 6 we replace this with Vault dynamic secrets
+externalSecrets:
+  enabled: false  # Enable in Phase 6
+  secretStoreRef: aws-secrets-manager
+  refreshInterval: 1h
+ 
+serviceAccount:
+  create: true
+  # IRSA annotation — links k8s service account to AWS IAM role
+  # This is how pods get AWS permissions without storing credentials
+  annotations: {}
+  # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/cloudnative-api-role
+ 
+# Node selector — schedule pods only on nodes with this label
+nodeSelector: {}
+ 
+# Tolerations — allow pods to run on tainted nodes
+tolerations: []
+ 
+# Affinity — prefer spreading pods across different nodes/AZs
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - cloudnative-api
+          topologyKey: kubernetes.io/hostname  # Spread across different nodes

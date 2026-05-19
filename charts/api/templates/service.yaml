@@ -1,0 +1,23 @@
+# ── Kubernetes Service ───────────────────────────────────────────
+# Service provides stable network identity for a set of pods.
+# Pods are ephemeral — they die and get new IPs constantly.
+# Service IP never changes — other services always find it.
+# DNS: cloudnative-api.default.svc.cluster.local
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cloudnative-api.fullname" . }}
+  labels:
+    {{- include "cloudnative-api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "cloudnative-api.selectorLabels" . | nindent 4 }}
+    # Only routes to pods matching these labels
+    # Automatically excludes pods that fail readiness probes
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
