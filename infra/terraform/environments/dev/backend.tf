@@ -9,7 +9,6 @@ terraform {
     key            = "environments/dev/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "cloudnative-terraform-lock"
-    use_lockfile   = true
     encrypt        = true
   }
 }
