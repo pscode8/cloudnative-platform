@@ -1,0 +1,6 @@
+# CVE-2023-45853 | zlib1g | will_not_fix (Debian upstream)
+# Affected function: zipOpenNewFileInZip4_6 (minizip utility)
+# This application does not use zlib minizip or zip file creation.
+# Justification: unexploitable in this runtime context.
+# Review date: 2026-05-18 | Owner: platform-team
+CVE-2023-45853

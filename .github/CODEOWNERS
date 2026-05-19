@@ -1,0 +1,8 @@
+cat > .github/CODEOWNERS << 'EOF'
+# Global owner — you review everything
+* @YOUR_GITHUB_USERNAME
+
+# Infra changes need extra attention
+infra/ @YOUR_GITHUB_USERNAME
+.github/ @YOUR_GITHUB_USERNAME
+EOF
