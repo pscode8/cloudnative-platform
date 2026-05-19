@@ -1,0 +1,37 @@
+# ── App of Apps Pattern ───────────────────────────────────────────
+# The most powerful ArgoCD pattern.
+# This ONE application watches gitops/environments/dev/
+# That folder contains Application manifests for: api, frontend, worker
+# ArgoCD creates those apps automatically — self-managing.
+#
+# Adding a new service = add a new Application yaml to the folder.
+# No manual ArgoCD configuration needed. Pure GitOps.
+#
+# Apply this once: kubectl apply -f gitops/argocd/app-of-apps.yaml
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudnative-dev
+  namespace: argocd
+  # Cascade delete — deleting this app deletes all child apps
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: cloudnative
+ 
+  source:
+    repoURL: https://github.com/pscode8/cloudnative-platform
+    targetRevision: main
+    path: gitops/environments/dev  # Watch this folder for Application manifests
+ 
+  destination:
+    server: https://kubernetes.default.svc  # In-cluster
+    namespace: argocd
+ 
+  syncPolicy:
+    automated:
+      prune: true     # Delete k8s resources removed from git
+      selfHeal: true  # Revert manual kubectl changes back to git state
+    syncOptions:
+      - CreateNamespace=true

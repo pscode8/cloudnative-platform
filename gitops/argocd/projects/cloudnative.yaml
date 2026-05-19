@@ -1,0 +1,41 @@
+# ── ArgoCD Project ───────────────────────────────────────────────
+# Projects are security boundaries in ArgoCD.
+# They control: which git repos, which clusters, which namespaces.
+# Prevents: dev app accidentally deploying to prod cluster.
+# Enterprise pattern: one project per team or environment.
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cloudnative
+  namespace: argocd
+spec:
+  description: CloudNative Platform project
+ 
+  # Only allow deployments from our repo
+  sourceRepos:
+    - https://github.com/pscode8/cloudnative-platform
+    - https://charts.helm.sh/stable
+    - https://kubernetes.github.io/ingress-nginx
+    - https://charts.jetstack.io
+ 
+  # Only allow deployments to these namespaces
+  destinations:
+    - namespace: cloudnative-dev
+      server: https://kubernetes.default.svc
+    - namespace: cloudnative-staging
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+ 
+  # Cluster-scoped resources this project can manage
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: IngressClass
+ 
+  # Namespace-scoped resources allowed
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
