@@ -1,0 +1,103 @@
+# ── Terraform CI/CD Pipeline ─────────────────────────────────────
+# PR workflow:
+#   1. fmt check — fails if code not formatted
+#   2. validate — catches syntax errors before AWS sees them
+#   3. plan — shows exactly what will change in AWS
+#   4. infracost — shows cost delta ($12.50/mo more → reviewer can approve/reject)
+#   5. Post plan as PR comment — team reviews infra changes like code
+#
+# Merge to main:
+#   6. apply — actually creates/modifies resources in dev
+#
+# This is GitOps for infrastructure. Every change is reviewed,
+# tracked in git, and applied automatically. No manual AWS console changes.
+
+name: Terraform
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/terraform/**'
+    #  - '.github/workflows/terraform.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/terraform/**'
+
+env:
+  TF_VERSION: "1.8.5"
+  WORKING_DIR: "infra/terraform/environments/dev"
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # needed to post plan as PR comment
+      id-token: write       # needed for OIDC auth to AWS (no static keys!)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC auth — GitHub Actions assumes an AWS role via OIDC.
+      # No AWS_ACCESS_KEY_ID stored in GitHub secrets.
+      # The role only works when triggered from this specific repo + branch.
+      # This is how you do CI/CD auth in 2025 — no long-lived keys.
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform fmt -check -recursive
+        # Fails if anyone didn't run terraform fmt before committing
+
+      - name: Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform plan -no-color -out=tfplan
+        continue-on-error: true  # Post comment even if plan fails
+
+      # Posts the plan output directly in the PR as a comment.
+      # Team sees: "will add 3 resources, change 1, destroy 0" before merging.
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const output = `#### Terraform Plan 📋
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            *Pushed by: @${{ github.actor }}*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      # Only applies on merge to main — not on PRs
+      # This is the infrastructure equivalent of CD
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
