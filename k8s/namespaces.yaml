@@ -3,7 +3,7 @@
 # Same cluster, completely separate: networking, RBAC, resource quotas.
 # Dev team cannot accidentally kubectl apply to prod namespace.
 # Each namespace gets its own ResourceQuota (guardrails on total usage).
- 
+
 ---
 apiVersion: v1
 kind: Namespace
@@ -15,7 +15,7 @@ metadata:
     # Istio sidecar injection — auto-injects Envoy proxy into every pod
     # Enables: mTLS, traffic management, observability (Phase 5)
     istio-injection: enabled
- 
+
 ---
 apiVersion: v1
 kind: Namespace
@@ -25,7 +25,7 @@ metadata:
     environment: staging
     team: cloudnative
     istio-injection: enabled
- 
+
 ---
 apiVersion: v1
 kind: Namespace
@@ -35,7 +35,7 @@ metadata:
     environment: prod
     team: cloudnative
     istio-injection: enabled
- 
+
 ---
 # ── Resource Quota: Dev ──────────────────────────────────────────
 # Prevents dev workloads from consuming all cluster resources.
@@ -53,7 +53,7 @@ spec:
     limits.memory: 8Gi
     pods: "20"               # Max 20 pods in dev namespace
     services: "10"
- 
+
 ---
 # ── Resource Quota: Prod ─────────────────────────────────────────
 apiVersion: v1

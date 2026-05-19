@@ -16,7 +16,7 @@
 # 4. Let's Encrypt verifies → issues 90-day certificate
 # 5. cert-manager stores cert in k8s Secret
 # 6. cert-manager renews automatically at 60 days
- 
+
 ---
 # Production issuer — real certificates, rate limited (5/week per domain)
 apiVersion: cert-manager.io/v1
@@ -33,7 +33,7 @@ spec:
       - http01:
           ingress:
             class: nginx
- 
+
 ---
 # Staging issuer — for testing, no rate limits, cert not trusted by browsers
 apiVersion: cert-manager.io/v1

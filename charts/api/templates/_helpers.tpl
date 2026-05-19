@@ -11,7 +11,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/component: api
 app.kubernetes.io/part-of: cloudnative-platform
 {{- end }}
- 
+
 {{/*
 Selector labels — used by Services to find pods.
 Must be stable — changing these breaks service discovery.
@@ -20,7 +20,7 @@ Must be stable — changing these breaks service discovery.
 app.kubernetes.io/name: {{ include "cloudnative-api.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
- 
+
 {{/*
 Service account name
 */}}
