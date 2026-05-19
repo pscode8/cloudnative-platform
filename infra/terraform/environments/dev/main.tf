@@ -91,5 +91,5 @@ module "rds" {
   # dev.t3.micro is FREE TIER ELIGIBLE — no cost for 750hrs/month
   instance_class        = "db.t3.micro"
   allocated_storage_gb  = 20
-  backup_retention_days = 1  # 1 day for dev — save storage costs
+  backup_retention_days = 1 # 1 day for dev — save storage costs
 }

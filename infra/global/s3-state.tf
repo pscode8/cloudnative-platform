@@ -21,13 +21,13 @@ resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-terraform-state-${var.account_id}"
 
   lifecycle {
-    prevent_destroy = true  # safety — never accidentally delete
+    prevent_destroy = true # safety — never accidentally delete
   }
 
   tags = {
-    Name        = "Terraform State"
-    Project     = var.project_name
-    ManagedBy   = "terraform"
+    Name      = "Terraform State"
+    Project   = var.project_name
+    ManagedBy = "terraform"
   }
 }
 

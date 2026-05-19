@@ -37,7 +37,7 @@ variable "node_group_config" {
   })
   # Dev defaults — cheap. Override in prod tfvars.
   default = {
-    instance_types = ["t3.medium"]  # 2 vCPU, 4GB RAM — enough for dev
+    instance_types = ["t3.medium"] # 2 vCPU, 4GB RAM — enough for dev
     desired_size   = 2
     min_size       = 1
     max_size       = 4
