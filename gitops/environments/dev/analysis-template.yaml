@@ -1,0 +1,55 @@
+# ── Argo Rollouts Analysis Template ─────────────────────────────
+# Defines what 'success' means for a canary deployment.
+# Argo Rollouts queries Prometheus with these metrics.
+# If any metric fails → automatic rollback, zero human intervention.
+#
+# This is the difference between:
+# Old way: deploy → monitor dashboards → manually rollback if bad
+# New way: deploy → automated analysis → auto rollback if bad
+# The new way works at 3am when nobody is watching dashboards.
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: api-success-rate
+  namespace: cloudnative-dev
+spec:
+  args:
+    - name: service-name
+ 
+  metrics:
+    # ── Success Rate ─────────────────────────────────────────────
+    # Fail if error rate exceeds 5% over 5 minute window
+    - name: success-rate
+      interval: 1m
+      # How many consecutive failures before marking as Failed
+      failureLimit: 3
+      successCondition: result[0] >= 0.95   # 95% success rate minimum
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{
+              service="{{args.service-name}}",
+              status!~"5.."
+            }[5m]))
+            /
+            sum(rate(http_requests_total{
+              service="{{args.service-name}}"
+            }[5m]))
+ 
+    # ── Latency P99 ──────────────────────────────────────────────
+    # Fail if P99 latency exceeds 500ms
+    - name: latency-p99
+      interval: 1m
+      failureLimit: 3
+      successCondition: result[0] <= 0.5   # 500ms in seconds
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring:9090
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{
+                service="{{args.service-name}}"
+              }[5m])) by (le)
+            )

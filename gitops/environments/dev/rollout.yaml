@@ -1,0 +1,79 @@
+# ── Argo Rollouts: Canary Deployment ─────────────────────────────
+# Replaces the standard Kubernetes Deployment for zero-risk deploys.
+#
+# Canary strategy:
+#   Step 1: Send 20% traffic to new version, pause 2 min
+#   Step 2: Run automated analysis (error rate, latency)
+#   Step 3: If analysis passes → 50% traffic, pause 5 min
+#   Step 4: If analysis passes → 100% traffic (full rollout)
+#   Any step fails → automatic rollback to previous version
+#
+# This is how Netflix, Uber, Amazon deploy — never big bang releases.
+# A bug hits 20% of users for 2 minutes instead of 100% permanently.
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: cloudnative-api
+  namespace: cloudnative-dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cloudnative-api
+  template:
+    metadata:
+      labels:
+        app: cloudnative-api
+    spec:
+      containers:
+        - name: api
+          image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+ 
+  strategy:
+    canary:
+      # Traffic split via ingress-nginx header injection
+      canaryService: cloudnative-api-canary
+      stableService: cloudnative-api-stable
+      trafficRouting:
+        nginx:
+          stableIngress: cloudnative-api-stable
+ 
+      steps:
+        # Step 1: 20% canary traffic — quick smoke test
+        - setWeight: 20
+        - pause:
+            duration: 2m
+ 
+        # Step 2: Automated analysis — checks real metrics
+        - analysis:
+            templates:
+              - templateName: api-success-rate
+            args:
+              - name: service-name
+                value: cloudnative-api-canary
+ 
+        # Step 3: Increase to 50% if analysis passed
+        - setWeight: 50
+        - pause:
+            duration: 5m
+ 
+        # Step 4: Another analysis at 50% traffic
+        - analysis:
+            templates:
+              - templateName: api-success-rate
+            args:
+              - name: service-name
+                value: cloudnative-api-canary
+ 
+        # Step 5: Full rollout — 100% traffic to new version
+        - setWeight: 100

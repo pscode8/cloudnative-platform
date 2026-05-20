@@ -1,0 +1,42 @@
+# ── ArgoCD Application: API (Production) ─────────────────────────
+# Production: NO automated sync.
+# Every production change requires explicit human action.
+# ArgoCD shows diff between git and cluster — human clicks Sync.
+# This is intentional: production changes should be deliberate.
+#
+# Auto-sync in prod is fine for stateless config changes.
+# For app deployments, manual gives you the 'are you sure?' moment.
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudnative-api-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: cloudnative
+ 
+  source:
+    repoURL: https://github.com/pscode8/cloudnative-platform
+    targetRevision: main
+    path: charts/api
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters:
+        - name: image.tag
+          value: "latest"   # Promote workflow updates this
+ 
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cloudnative-prod
+ 
+  # Production: NO automated sync — manual only
+  # syncPolicy intentionally omitted
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas   # HPA manages replicas — ignore drift here
