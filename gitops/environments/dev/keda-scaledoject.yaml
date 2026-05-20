@@ -1,15 +1,34 @@
- namespace: cloudnative-dev
+---
+# ── KEDA: Event-Driven Autoscaling ───────────────────────────────
+# KEDA = Kubernetes Event-Driven Autoscaling
+# Standard HPA scales on CPU/memory — reactive, not proactive.
+# KEDA scales on external metrics — Kafka lag, SQS queue depth, etc.
+#
+# Scenario: 10,000 orders come in at 9am (peak shopping).
+# Kafka orders topic fills up with unprocessed messages.
+# KEDA sees lag = 10,000 → scales worker from 1 to 20 pods.
+# Workers process messages → lag drops → KEDA scales back to 1.
+#
+# Scale to zero: at night with no messages, workers = 0 pods.
+# Zero pods = zero cost. Traditional HPA can only go to minReplicas (1+).
+# This is why event-driven companies use KEDA for workers.
+ 
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cloudnative-worker
+  namespace: cloudnative-dev
 spec:
   scaleTargetRef:
     name: cloudnative-worker   # The Deployment to scale
-
+ 
   # Scale to zero when no messages — save money
   minReplicaCount: 0
   maxReplicaCount: 20
-
+ 
   # How long to wait before scaling down after messages stop
   cooldownPeriod: 300   # 5 minutes
-
+ 
   triggers:
     - type: kafka
       metadata:
