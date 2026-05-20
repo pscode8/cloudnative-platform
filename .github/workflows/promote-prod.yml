@@ -6,9 +6,9 @@
 #
 # This is the 'four eyes principle' — two humans verify before prod change.
 # Aviation, nuclear, and finance all use this. So do we.
- 
+
 name: Promote to Production
- 
+
 on:
   workflow_dispatch:
     inputs:
@@ -20,32 +20,32 @@ on:
         description: 'Change ticket number (e.g. CHG-1234)'
         required: true
         type: string
- 
+
 jobs:
   promote-prod:
     name: Deploy ${{ github.event.inputs.image_tag }} to Production
     runs-on: ubuntu-latest
     environment: production   # REQUIRES APPROVAL from required reviewers
                               # Set in: Settings → Environments → production → Required reviewers
- 
+
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
- 
+
       - name: Update production GitOps
         run: |
           sed -i "s|value: .*|value: \"${{ github.event.inputs.image_tag }}\"|"             gitops/environments/prod/api.yaml
- 
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add gitops/environments/prod/api.yaml
           git commit -m "chore(gitops): deploy api ${{ github.event.inputs.image_tag }} to production
-          
+
           Change ticket: ${{ github.event.inputs.change_ticket }}
           Approved by: ${{ github.actor }}"
           git push
- 
+
       # Create GitHub Release for every prod deployment
       # Full audit trail: what, when, who approved
       - name: Create GitHub Release
@@ -66,7 +66,7 @@ jobs:
               ].join('\n'),
               prerelease: false,
             });
- 
+
       - name: Notify Slack
         uses: slackapi/slack-github-action@v1.26.0
         with:

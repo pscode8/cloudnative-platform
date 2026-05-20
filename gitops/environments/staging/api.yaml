@@ -3,7 +3,7 @@
 # Purpose: catch environment-specific bugs before they hit prod.
 # Same image, same resource limits, same DB size as prod (ideally).
 # Only difference: less traffic, non-production data.
- 
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -13,7 +13,7 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: cloudnative
- 
+
   source:
     repoURL: https://github.com/pscode8/cloudnative-platform
     targetRevision: main
@@ -25,11 +25,11 @@ spec:
       parameters:
         - name: image.tag
           value: "latest"   # CD pipeline updates this
- 
+
   destination:
     server: https://kubernetes.default.svc
     namespace: cloudnative-staging
- 
+
   # Staging: manual sync — human reviews before applying
   syncPolicy:
     syncOptions:

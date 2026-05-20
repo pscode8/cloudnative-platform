@@ -2,13 +2,13 @@
 # Staging should be as close to prod as possible.
 # The closer staging is to prod, the more reliable your pre-prod testing.
 # Common mistake: staging with lower resources → works in staging, OOMs in prod.
- 
+
 replicaCount: 2
- 
+
 image:
   repository: "483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api"
   tag: "latest"
- 
+
 ingress:
   hosts:
     - host: api.staging.cloudnative.dev
@@ -19,7 +19,7 @@ ingress:
     - secretName: api-staging-tls
       hosts:
         - api.staging.cloudnative.dev
- 
+
 # Same resource limits as prod — test with real constraints
 resources:
   requests:
@@ -28,12 +28,12 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
- 
+
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
- 
+
 env:
   ENV: "staging"
   LOG_LEVEL: "INFO"
