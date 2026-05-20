@@ -10,7 +10,7 @@
 #
 # This is how Netflix, Uber, Amazon deploy — never big bang releases.
 # A bug hits 20% of users for 2 minutes instead of 100% permanently.
- 
+
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -38,7 +38,7 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
- 
+
   strategy:
     canary:
       # Traffic split via ingress-nginx header injection
@@ -47,13 +47,13 @@ spec:
       trafficRouting:
         nginx:
           stableIngress: cloudnative-api-stable
- 
+
       steps:
         # Step 1: 20% canary traffic — quick smoke test
         - setWeight: 20
         - pause:
             duration: 2m
- 
+
         # Step 2: Automated analysis — checks real metrics
         - analysis:
             templates:
@@ -61,12 +61,12 @@ spec:
             args:
               - name: service-name
                 value: cloudnative-api-canary
- 
+
         # Step 3: Increase to 50% if analysis passed
         - setWeight: 50
         - pause:
             duration: 5m
- 
+
         # Step 4: Another analysis at 50% traffic
         - analysis:
             templates:
@@ -74,6 +74,6 @@ spec:
             args:
               - name: service-name
                 value: cloudnative-api-canary
- 
+
         # Step 5: Full rollout — 100% traffic to new version
         - setWeight: 100

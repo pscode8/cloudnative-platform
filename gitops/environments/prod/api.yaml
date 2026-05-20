@@ -6,7 +6,7 @@
 #
 # Auto-sync in prod is fine for stateless config changes.
 # For app deployments, manual gives you the 'are you sure?' moment.
- 
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -16,7 +16,7 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: cloudnative
- 
+
   source:
     repoURL: https://github.com/pscode8/cloudnative-platform
     targetRevision: main
@@ -28,11 +28,11 @@ spec:
       parameters:
         - name: image.tag
           value: "latest"   # Promote workflow updates this
- 
+
   destination:
     server: https://kubernetes.default.svc
     namespace: cloudnative-prod
- 
+
   # Production: NO automated sync — manual only
   # syncPolicy intentionally omitted
   ignoreDifferences:

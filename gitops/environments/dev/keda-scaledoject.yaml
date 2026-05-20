@@ -2,14 +2,14 @@
 spec:
   scaleTargetRef:
     name: cloudnative-worker   # The Deployment to scale
- 
+
   # Scale to zero when no messages — save money
   minReplicaCount: 0
   maxReplicaCount: 20
- 
+
   # How long to wait before scaling down after messages stop
   cooldownPeriod: 300   # 5 minutes
- 
+
   triggers:
     - type: kafka
       metadata:
