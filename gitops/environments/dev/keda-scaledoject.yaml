@@ -1,0 +1,22 @@
+ namespace: cloudnative-dev
+spec:
+  scaleTargetRef:
+    name: cloudnative-worker   # The Deployment to scale
+ 
+  # Scale to zero when no messages — save money
+  minReplicaCount: 0
+  maxReplicaCount: 20
+ 
+  # How long to wait before scaling down after messages stop
+  cooldownPeriod: 300   # 5 minutes
+ 
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.cloudnative-dev.svc.cluster.local:9092
+        consumerGroup: cloudnative-worker
+        topic: orders
+        # Scale by 1 pod per 100 unprocessed messages
+        # 500 messages → 5 pods, 2000 messages → 20 pods
+        lagThreshold: "100"
+        offsetResetPolicy: latest

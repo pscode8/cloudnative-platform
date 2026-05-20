@@ -1,0 +1,125 @@
+# ── Continuous Deployment Pipeline ──────────────────────────────
+# Triggered on merge to main branch.
+# Flow:
+#   1. Build Docker image
+#   2. Push to ECR with SHA tag (immutable, traceable)
+#   3. Run Trivy security scan
+#   4. Update GitOps repo with new image tag
+#   5. ArgoCD detects git change → auto deploys to dev
+#
+# WHY SHA tags not version tags for CD?
+# sha-abc123f is immutable — you know EXACTLY what code is running.
+# v1.2.3 could be overwritten. SHA cannot. Production-grade traceability.
+ 
+name: CD
+ 
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/frontend/**'
+      - 'apps/worker/**'
+ 
+env:
+  AWS_REGION: us-east-2
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com
+  IMAGE_TAG: sha-${{ github.sha }}
+ 
+jobs:
+  build-push:
+    name: Build and Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to update gitops files
+      id-token: write   # needed for OIDC AWS auth
+ 
+    outputs:
+      image-tag: ${{ env.IMAGE_TAG }}
+ 
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+ 
+      # Login to ECR — Docker needs credentials to push
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+ 
+      # Build prod stage only — no test deps, minimal image
+      - name: Build API image
+        run: |
+          docker build             --target prod             --tag $ECR_REGISTRY/cloudnative/api:$IMAGE_TAG             --tag $ECR_REGISTRY/cloudnative/api:latest             --cache-from $ECR_REGISTRY/cloudnative/api:latest             --build-arg BUILDKIT_INLINE_CACHE=1             apps/api/
+ 
+      # Scan BEFORE pushing — never push vulnerable images to registry
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/cloudnative/api:${{ env.IMAGE_TAG }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL
+          exit-code: 1   # Fail build on CRITICAL CVEs
+ 
+      - name: Upload security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()   # Upload even if scan failed
+        with:
+          sarif_file: trivy-results.sarif
+ 
+      # Push only after scan passes
+      - name: Push to ECR
+        run: |
+          docker push $ECR_REGISTRY/cloudnative/api:$IMAGE_TAG
+          docker push $ECR_REGISTRY/cloudnative/api:latest
+ 
+  # Separate job — updates GitOps repo to trigger ArgoCD
+  update-gitops:
+    name: Update GitOps
+    runs-on: ubuntu-latest
+    needs: build-push
+    permissions:
+      contents: write
+ 
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+ 
+      # Update the image tag in ArgoCD Application manifest
+      # ArgoCD watches this file — changing tag = new deployment
+      - name: Update image tag in GitOps
+        run: |
+          sed -i "s|value: .*|value: \"${{ needs.build-push.outputs.image-tag }}\"|"             gitops/environments/dev/api.yaml
+ 
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/environments/dev/api.yaml
+          git commit -m "chore(gitops): deploy api ${{ needs.build-push.outputs.image-tag }} to dev"
+          git push
+ 
+      # Notify Slack on successful deployment
+      - name: Notify Slack
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "✅ Deployed *cloudnative-api* `${{ needs.build-push.outputs.image-tag }}` to *dev*",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "✅ *Deploy successful*\n*Service:* cloudnative-api\n*Tag:* `${{ needs.build-push.outputs.image-tag }}`\n*Environment:* dev\n*Triggered by:* ${{ github.actor }}"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
