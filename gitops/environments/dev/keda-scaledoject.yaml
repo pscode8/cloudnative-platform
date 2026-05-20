@@ -12,7 +12,7 @@
 # Scale to zero: at night with no messages, workers = 0 pods.
 # Zero pods = zero cost. Traditional HPA can only go to minReplicas (1+).
 # This is why event-driven companies use KEDA for workers.
- 
+
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -21,14 +21,14 @@ metadata:
 spec:
   scaleTargetRef:
     name: cloudnative-worker   # The Deployment to scale
- 
+
   # Scale to zero when no messages — save money
   minReplicaCount: 0
   maxReplicaCount: 20
- 
+
   # How long to wait before scaling down after messages stop
   cooldownPeriod: 300   # 5 minutes
- 
+
   triggers:
     - type: kafka
       metadata:
