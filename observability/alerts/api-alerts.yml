@@ -1,90 +1,150 @@
 groups:
-  - name: api.rules
+  - name: api.availability
     rules:
-
+      # Error rate above 5% for 5 minutes
       - alert: HighErrorRate
         expr: |
-          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          sum(rate(http_requests_total{
+            job="cloudnative-api",
+            status=~"5.."
+          }[5m]))
           /
-          sum(rate(http_requests_total[5m])) > 0.05
+          sum(rate(http_requests_total{
+            job="cloudnative-api"
+          }[5m])) > 0.05
         for: 5m
-
         labels:
           severity: critical
           team: backend
-
         annotations:
           summary: "High error rate on API"
           description: "Error rate is {{ $value | humanizePercentage }}"
-          runbook: "docs/runbooks/high-error-rate.md"
+          runbook: "https://github.com/pscode8/cloudnative-platform/blob/main/docs/runbooks/high-error-rate.md"
 
+      # P99 latency above 500ms
       - alert: HighLatencyP99
         expr: |
-          histogram_quantile(
-            0.99,
-            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{
+              job="cloudnative-api"
+            }[5m])) by (le)
           ) > 0.5
         for: 5m
-
         labels:
           severity: warning
-
+          team: backend
         annotations:
           summary: "P99 latency above 500ms"
+          description: "P99 latency is {{ $value | humanizeDuration }}"
+          runbook: "docs/runbooks/high-latency.md"
 
-      - alert: PodCrashLooping
-        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
-        for: 5m
-
-        labels:
-          severity: critical
-
-        annotations:
-          summary: "Pod {{ $labels.pod }} is crash looping"
-
-      - alert: NodeDiskAlmostFull
+      # API down — no requests for 5 minutes
+      - alert: APIDown
         expr: |
-          (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+          absent(http_requests_total{job="cloudnative-api"})
         for: 5m
-
         labels:
           severity: critical
-
         annotations:
-          summary: "Disk almost full on {{ $labels.instance }}"
+          summary: "API is returning no metrics — may be down"
+
+  - name: api.resources
+    rules:
+      # Pod crash looping
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total{
+            namespace="cloudnative-dev"
+          }[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} crash looping"
+          description: "Pod has restarted {{ $value }} times in 15 minutes"
+
+      # Memory near limit
+      - alert: HighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{
+            namespace="cloudnative-dev",
+            container="api"
+          }
+          /
+          container_spec_memory_limit_bytes{
+            namespace="cloudnative-dev",
+            container="api"
+          } > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API memory usage above 85%"
+          description: "Memory at {{ $value | humanizePercentage }}"
+
+      # HPA at max replicas
+      - alert: HPAAtMaxReplicas
+        expr: |
+          kube_horizontalpodautoscaler_status_current_replicas{
+            namespace="cloudnative-dev"
+          }
+          ==
+          kube_horizontalpodautoscaler_spec_max_replicas{
+            namespace="cloudnative-dev"
+          }
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} at max replicas"
+          description: "Cannot scale further — may need to increase maxReplicas"
 
   - name: slo.api
     rules:
-
+      # SLO: 99.9% availability
+      # Record rule — pre-computed for dashboard efficiency
       - record: slo:api:availability:ratio_rate5m
         expr: |
           sum(rate(http_requests_total{
-            service="cloudnative-api",
+            job="cloudnative-api",
             status!~"5.."
           }[5m]))
           /
           sum(rate(http_requests_total{
-            service="cloudnative-api"
+            job="cloudnative-api"
           }[5m]))
 
-      - alert: ErrorBudgetBurnFast
-        expr: slo:api:availability:ratio_rate5m < (1 - 14.4 * (1 - 0.999))
-        for: 2m
+      # Error budget remaining
+      - record: slo:api:error_budget:remaining
+        expr: |
+          1 - (
+            (1 - slo:api:availability:ratio_rate5m)
+            /
+            (1 - 0.999)
+          )
 
+      # Fast burn — budget exhausted in ~1 hour
+      - alert: ErrorBudgetBurnFast
+        expr: |
+          slo:api:availability:ratio_rate5m
+            < (1 - 14.4 * (1 - 0.999))
+        for: 2m
         labels:
           severity: critical
           slo: availability
-
         annotations:
-          summary: "Fast error budget burn - SLO breach in ~1hr"
+          summary: "Fast SLO error budget burn"
+          description: "Burning error budget 14.4x faster than target. Breach in ~1hr"
 
+      # Slow burn — budget exhausted in ~6 hours
       - alert: ErrorBudgetBurnSlow
-        expr: slo:api:availability:ratio_rate5m < (1 - 6 * (1 - 0.999))
+        expr: |
+          slo:api:availability:ratio_rate5m
+            < (1 - 6 * (1 - 0.999))
         for: 15m
-
         labels:
           severity: warning
           slo: availability
-
         annotations:
-          summary: "Slow error budget burn - check for degradation"
+          summary: "Slow SLO error budget burn"
+          description: "Burning error budget 6x faster than target. Check for degradation"
