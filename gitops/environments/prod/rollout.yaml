@@ -1,0 +1,63 @@
+# ── Argo Rollouts: Blue/Green for Production ─────────────────────
+# Blue/Green = two identical production environments.
+# Blue: current live version serving 100% traffic
+# Green: new version deployed but NOT serving traffic yet
+#
+# Deploy flow:
+# 1. Deploy new version to Green (zero user impact)
+# 2. Run smoke tests against Green directly
+# 3. Switch traffic: Blue → Green (instant, ~0ms downtime)
+# 4. Keep Blue running for 10 minutes (instant rollback available)
+# 5. If all good → delete Blue, Green becomes new Blue
+#
+# Used by: AWS, Netflix, Etsy for zero-downtime production deploys.
+# The 10-minute window gives you time to catch issues before Blue is gone.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: cloudnative-api
+  namespace: cloudnative-prod
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: cloudnative-api
+
+  template:
+    metadata:
+      labels:
+        app: cloudnative-api
+    spec:
+      containers:
+        - name: api
+          image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api:latest
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+  strategy:
+    blueGreen:
+      activeService: cloudnative-api-active      # Blue — serves live traffic
+      previewService: cloudnative-api-preview    # Green — new version staging
+
+      # Manual promotion: team verifies green before switching traffic
+      # Set to false for fully automated (canary is better for that)
+      autoPromotionEnabled: false
+
+      # Keep old (blue) version running for 10 min after promotion
+      # Instant rollback available during this window
+      scaleDownDelaySeconds: 600
+
+      # Run analysis on green before allowing promotion
+      prePromotionAnalysis:
+        templates:
+          - templateName: api-success-rate
+        args:
+          - name: service-name
+            value: cloudnative-api-preview

@@ -1,0 +1,32 @@
+# ── Dev Environment Overrides ────────────────────────────────────
+# Only specify what DIFFERS from values.yaml defaults.
+# Helm merges this with values.yaml — dev-specific wins.
+
+replicaCount: 1  # Save money in dev — 1 replica is fine
+
+image:
+  repository: "483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api"
+  tag: "latest"
+
+ingress:
+  hosts:
+    - host: api.dev.cloudnative.internal
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []  # No TLS in dev — saves cert-manager complexity
+
+resources:
+  requests:
+    cpu: 50m      # Lower requests in dev — pack more pods per node
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false  # No autoscaling in dev — fixed 1 replica
+
+env:
+  ENV: "dev"
+  LOG_LEVEL: "DEBUG"  # Verbose logging in dev

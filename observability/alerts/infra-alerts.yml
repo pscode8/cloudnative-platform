@@ -1,0 +1,67 @@
+groups:
+  - name: infrastructure
+    rules:
+      # Node CPU above 85%
+      - alert: NodeCPUHigh
+        expr: |
+          100 - (avg by(instance) (
+            rate(node_cpu_seconds_total{mode="idle"}[5m])
+          ) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU at {{ $value | humanize }}%"
+
+      # Node memory above 85%
+      - alert: NodeMemoryHigh
+        expr: |
+          (1 - (
+            node_memory_MemAvailable_bytes
+            /
+            node_memory_MemTotal_bytes
+          )) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory on {{ $labels.instance }}"
+          description: "Memory at {{ $value | humanize }}%"
+
+      # Disk almost full
+      - alert: NodeDiskAlmostFull
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"}
+            /
+            node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs"}
+          ) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk almost full on {{ $labels.instance }}"
+          description: "Only {{ $value | humanize }}% disk space remaining"
+
+      # Node not ready
+      - alert: NodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.node }} is not ready"
+
+      # PVC almost full
+      - alert: PersistentVolumeAlmostFull
+        expr: |
+          kubelet_volume_stats_available_bytes
+          /
+          kubelet_volume_stats_capacity_bytes < 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PVC {{ $labels.persistentvolumeclaim }} almost full"
+          description: "Only {{ $value | humanizePercentage }} space remaining"

@@ -1,0 +1,71 @@
+# ── Namespaces ───────────────────────────────────────────────────
+# Namespaces = logical isolation within a cluster.
+# Same cluster, completely separate: networking, RBAC, resource quotas.
+# Dev team cannot accidentally kubectl apply to prod namespace.
+# Each namespace gets its own ResourceQuota (guardrails on total usage).
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudnative-dev
+  labels:
+    environment: dev
+    team: cloudnative
+    # Istio sidecar injection — auto-injects Envoy proxy into every pod
+    # Enables: mTLS, traffic management, observability (Phase 5)
+    istio-injection: enabled
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudnative-staging
+  labels:
+    environment: staging
+    team: cloudnative
+    istio-injection: enabled
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudnative-prod
+  labels:
+    environment: prod
+    team: cloudnative
+    istio-injection: enabled
+
+---
+# ── Resource Quota: Dev ──────────────────────────────────────────
+# Prevents dev workloads from consuming all cluster resources.
+# If dev hits quota, pods fail to schedule — doesn't affect prod.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: cloudnative-dev
+spec:
+  hard:
+    requests.cpu: "4"        # Total CPU requests across all pods
+    requests.memory: 4Gi
+    limits.cpu: "8"
+    limits.memory: 8Gi
+    pods: "20"               # Max 20 pods in dev namespace
+    services: "10"
+
+---
+# ── Resource Quota: Prod ─────────────────────────────────────────
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: prod-quota
+  namespace: cloudnative-prod
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "30"

@@ -1,0 +1,19 @@
+# ── metrics-server ───────────────────────────────────────────────
+# metrics-server collects resource usage from all nodes and pods.
+# Required for: kubectl top pods, kubectl top nodes, HPA scaling.
+# Without it: HPA shows <unknown> for CPU metrics and never scales.
+#
+# Install:
+# helm upgrade --install metrics-server metrics-server/metrics-server #   --namespace kube-system #   -f k8s/cluster-addons/metrics-server.yaml
+
+args:
+  - --cert-dir=/tmp
+  - --secure-port=4443
+  - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+  - --kubelet-use-node-status-port
+  - --metric-resolution=15s  # Collect metrics every 15 seconds
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 200Mi
