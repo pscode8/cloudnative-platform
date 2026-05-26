@@ -55,3 +55,14 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# Local environment
+.venv/
+.terraform/
+*.tfstate*
+
+# Secrets
+*.pem
+*.key
+*.env
+echo "kubectl-argo-rollouts-linux-amd64" >> .gitignore
