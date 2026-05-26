@@ -12,6 +12,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://appuser:apppass@postgres:5432/appdb
       REDIS_URL: redis://redis:6379/0
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       ENV: dev
       LOG_LEVEL: DEBUG
     volumes:
@@ -84,6 +85,16 @@ services:
     depends_on:
       - zookeeper
 
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped
+    networks:
+      - platform
+
   # ── Observability (uncomment when ready for Phase 5) ──────────
   # prometheus:
   #   image: prom/prometheus:v2.51.0
@@ -111,6 +122,8 @@ services:
   #     GF_USERS_ALLOW_SIGN_UP: "false"
   #   volumes:
   #     - grafana_data:/var/lib/grafana
+
+  
 
 networks:
   platform:

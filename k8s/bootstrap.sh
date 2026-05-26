@@ -19,8 +19,8 @@ ACCOUNT_ID="483518901689"
 echo "Bootstrapping cluster: $CLUSTER_NAME"
 
 # ── Connect kubectl ───────────────────────────────────────────────
-echo "Connecting kubectl to EKS..."
-aws eks update-kubeconfig   --name "$CLUSTER_NAME"   --region "$REGION"
+echo "Connecting kubectl to EKS...via secure ssm, "
+#aws eks update-kubeconfig   --name "$CLUSTER_NAME"   --region "$REGION"
 
 kubectl get nodes  # Verify connection
 

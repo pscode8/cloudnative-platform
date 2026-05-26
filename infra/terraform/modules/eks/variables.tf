@@ -26,6 +26,11 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
+variable "bastion_sg_id" {
+  description = "Security group ID of the bastion host allowed to access the EKS API"
+  type        = string
+}
+
 variable "node_group_config" {
   description = "Node group sizing config"
   type = object({

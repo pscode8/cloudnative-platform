@@ -79,13 +79,14 @@ module "eks" {
   cluster_version    = "1.30"
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+  bastion_sg_id = module.bastion.security_group_id
 
   # Dev: small and cheap
   node_group_config = {
     instance_types = ["t3.small"]
-    desired_size   = 1
-    min_size       = 1
-    max_size       = 2
+    desired_size   = 2
+    min_size       = 2
+    max_size       = 3
     disk_size_gb   = 20
   }
 }

@@ -23,7 +23,7 @@ controller:
   metrics:
     enabled: true
     serviceMonitor:
-      enabled: true
+      enabled: false
 
   # Resource limits for the controller itself
   resources:

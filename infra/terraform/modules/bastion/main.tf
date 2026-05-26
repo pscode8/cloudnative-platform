@@ -7,8 +7,8 @@ resource "aws_iam_role" "bastion" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
@@ -56,20 +56,24 @@ data "aws_ami" "amazon_linux_2023" {
 
 # ── 4. The Bastion EC2 Instance ──────────────────────────────────────────────
 resource "aws_instance" "bastion" {
-  ami                  = data.aws_ami.amazon_linux_2023.id
-  instance_type        = var.instance_type
-  subnet_id            = var.subnet_id
-  
+  ami           = data.aws_ami.amazon_linux_2023.id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+
   iam_instance_profile   = aws_iam_instance_profile.bastion.name
   vpc_security_group_ids = [aws_security_group.bastion.id]
 
   metadata_options {
     http_endpoint               = "enabled"
-    http_tokens                 = "required" 
+    http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-bastion"
   })
+}
+output "security_group_id" {
+  value       = aws_security_group.bastion.id
+  description = "The ID of the Bastion security group"
 }
