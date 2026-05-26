@@ -10,6 +10,18 @@
 # TO DESTROY (save money when not using):
 #   terraform destroy -var-file=terraform.tfvars
 #   ⚠️ This deletes EVERYTHING including RDS data in dev
+#WHAT IT IS:
+# A tiny, highly secure EC2 instance that lives inside a private subnet.
+#
+# WHY WE NEED IT:
+# Our EKS cluster and RDS databases are in private subnets with no internet
+# access. We need a "Jump Box" (Bastion) inside the network to talk to them.
+#
+# HOW SSM (Systems Manager) WORKS:
+# Traditionally, Bastions used SSH (Port 22), which required opening a port
+# to the internet. Hackers scan for Port 22 constantly.
+# Instead, we use AWS SSM. The SSM Agent on this EC2 instance reaches *out* # to the AWS API. Your laptop connects to the AWS API, and AWS bridges the
+# connection. Result: We can connect securely without opening ANY inbound ports
 
 terraform {
   required_version = ">= 1.8.0"
@@ -92,4 +104,17 @@ module "rds" {
   instance_class        = "db.t3.micro"
   allocated_storage_gb  = 20
   backup_retention_days = 1 # 1 day for dev — save storage costs
+}
+# ── Bastion Host ─────────────────────────────────────────────────
+module "bastion" {
+  source = "../../modules/bastion"
+
+  project_name = var.project_name
+  environment  = "dev"
+
+  # Reference the VPC outputs directly
+  vpc_id    = module.vpc.vpc_id
+  subnet_id = module.vpc.private_subnet_ids[0]
+
+  instance_type = "t3.micro"
 }
