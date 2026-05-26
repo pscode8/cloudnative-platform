@@ -1,0 +1,23 @@
+# PDB prevents Kubernetes from evicting too many pods at once
+# during voluntary disruptions (node drain, cluster upgrade).
+#
+# Real scenario: You have 3 pods, minAvailable=2.
+# k8s tries to drain a node for upgrade.
+# It can only evict 1 pod at a time — always keeps 2 running.
+# Your service stays available during the entire maintenance window.
+#
+# Without PDB: k8s could evict all pods simultaneously = downtime.
+
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "cloudnative-api.fullname" . }}
+  labels:
+    {{- include "cloudnative-api.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "cloudnative-api.selectorLabels" . | nindent 6 }}
+{{- end }}

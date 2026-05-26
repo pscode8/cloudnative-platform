@@ -1,0 +1,47 @@
+# ── ArgoCD Application: API (Dev) ────────────────────────────────
+# This tells ArgoCD: deploy the api Helm chart to the dev namespace.
+# When CI pushes a new image tag → updates values → ArgoCD syncs → new pods.
+#
+# The full GitOps deploy flow:
+# 1. Developer merges PR to main
+# 2. CI builds image, pushes to ECR, gets SHA: sha-abc123f
+# 3. CI updates this file: image.tag: sha-abc123f
+# 4. CI commits + pushes "chore: deploy api sha-abc123f to dev"
+# 5. ArgoCD detects git change, syncs to cluster
+# 6. New pods roll out with zero downtime
+# 7. Full audit trail in git — who deployed what when
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudnative-api-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: cloudnative
+
+  source:
+    repoURL: https://github.com/pscode8/cloudnative-platform
+    targetRevision: main
+    path: charts/api  # Helm chart location in repo
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml  # Dev overrides
+      parameters:
+        # CI updates this on every deploy
+        - name: image.tag
+          value: "latest"  # CI replaces with: sha-abc123f
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cloudnative-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground

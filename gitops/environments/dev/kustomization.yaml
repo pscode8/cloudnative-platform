@@ -1,0 +1,13 @@
+# ── Kustomization ────────────────────────────────────────────────
+# Lists all Application manifests in this environment.
+# ArgoCD app-of-apps reads this directory and creates all listed apps.
+# Adding a new service = add its Application yaml + add it here.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - api.yaml
+  # Add more as you build them:
+  # - frontend.yaml
+  # - worker.yaml

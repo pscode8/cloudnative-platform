@@ -1,0 +1,63 @@
+# ── Promote to Staging ───────────────────────────────────────────
+# Manual trigger only — promotion is a deliberate action.
+# No accidental staging deployments.
+# QA signs off on dev → engineer manually promotes to staging.
+#
+# Trigger: GitHub Actions UI → Run workflow → enter image tag
+# Example: sha-abc123f
+
+name: Promote to Staging
+
+on:
+  workflow_dispatch:   # Manual trigger only
+    inputs:
+      image_tag:
+        description: 'Image tag to promote (e.g. sha-abc123f)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for promotion'
+        required: true
+        type: string
+
+jobs:
+  promote:
+    name: Promote ${{ github.event.inputs.image_tag }} to Staging
+    runs-on: ubuntu-latest
+    environment: staging   # Requires environment protection rules approval
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image exists in ECR
+        run: |
+          aws ecr describe-images             --repository-name cloudnative/api             --image-ids imageTag=${{ github.event.inputs.image_tag }}             --region us-east-2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Update staging GitOps
+        run: |
+          sed -i "s|value: .*|value: \"${{ github.event.inputs.image_tag }}\"|"             gitops/environments/staging/api.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/environments/staging/api.yaml
+          git commit -m "chore(gitops): promote api ${{ github.event.inputs.image_tag }} to staging
+
+          Reason: ${{ github.event.inputs.reason }}
+          Promoted by: ${{ github.actor }}"
+          git push
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🚀 Promoting *cloudnative-api* `${{ github.event.inputs.image_tag }}` to *staging*\nPromoted by: ${{ github.actor }}\nReason: ${{ github.event.inputs.reason }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

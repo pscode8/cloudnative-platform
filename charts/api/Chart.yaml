@@ -1,0 +1,21 @@
+# ── Helm Chart Metadata ──────────────────────────────────────────
+# Helm is the package manager for Kubernetes.
+# Think of it like apt/pip but for k8s — bundles all manifests together.
+# Chart version = chart code version (bump when you change templates)
+# appVersion = your application version (matches Docker image tag)
+
+apiVersion: v2
+name: cloudnative-api
+description: CloudNative Platform API Service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# Dependencies — other charts this chart needs
+# cert-manager and ingress-nginx installed separately at cluster level
+keywords:
+  - fastapi
+  - api
+  - cloudnative
+maintainers:
+  - name: devops-team
