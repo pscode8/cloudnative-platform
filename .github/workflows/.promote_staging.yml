@@ -9,14 +9,14 @@
 name: Promote to Staging
 
 on:
-  workflow_dispatch:   # Manual trigger only
+  workflow_dispatch: # Manual trigger only
     inputs:
       image_tag:
-        description: 'Image tag to promote (e.g. sha-abc123f)'
+        description: "Image tag to promote (e.g. sha-abc123f)"
         required: true
         type: string
       reason:
-        description: 'Reason for promotion'
+        description: "Reason for promotion"
         required: true
         type: string
 
@@ -24,7 +24,7 @@ jobs:
   promote:
     name: Promote ${{ github.event.inputs.image_tag }} to Staging
     runs-on: ubuntu-latest
-    environment: staging   # Requires environment protection rules approval
+    environment: staging # Requires environment protection rules approval
 
     steps:
       - uses: actions/checkout@v4

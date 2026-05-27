@@ -18,12 +18,12 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'infra/terraform/**'
+      - "infra/terraform/**"
     #  - '.github/workflows/terraform.yml'
   push:
     branches: [main]
     paths:
-      - 'infra/terraform/**'
+      - "infra/terraform/**"
 
 env:
   TF_VERSION: "1.8.5"
@@ -35,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write  # needed to post plan as PR comment
-      id-token: write       # needed for OIDC auth to AWS (no static keys!)
+      pull-requests: write # needed to post plan as PR comment
+      id-token: write # needed for OIDC auth to AWS (no static keys!)
 
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
         id: plan
         working-directory: ${{ env.WORKING_DIR }}
         run: terraform plan -no-color -out=tfplan
-        continue-on-error: true  # Post comment even if plan fails
+        continue-on-error: true # Post comment even if plan fails
 
       # Posts the plan output directly in the PR as a comment.
       # Team sees: "will add 3 resources, change 1, destroy 0" before merging.

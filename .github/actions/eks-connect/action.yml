@@ -1,0 +1,107 @@
+name: "EKS Connect via SSM Tunnel"
+description: "Start an SSM port-forward tunnel to EKS and configure kubectl"
+
+inputs:
+  cluster-name:
+    description: "EKS cluster name"
+    required: true
+  region:
+    description: "AWS region"
+    required: true
+    default: "us-east-2"
+  bastion-tag:
+    description: "Value of the Name tag on the bastion EC2 instance"
+    required: true
+    default: "bastion"
+  local-port:
+    description: "Local port to forward EKS API onto"
+    required: false
+    default: "6443"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install SSM Session Manager plugin
+      shell: bash
+      run: |
+        if ! command -v session-manager-plugin &>/dev/null; then
+          echo "::group::Installing SSM Session Manager plugin"
+          curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o /tmp/ssm-plugin.deb
+          sudo dpkg -i /tmp/ssm-plugin.deb
+          echo "::endgroup::"
+        else
+          echo "SSM plugin already installed: $(session-manager-plugin --version)"
+        fi
+
+    - name: Resolve bastion ID and EKS endpoint
+      shell: bash
+      run: |
+        echo "::group::Resolving AWS variables"
+        BASTION_ID=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=${{ inputs.bastion-tag }}" "Name=instance-state-name,Values=running" \
+          --region "${{ inputs.region }}" \
+          --query 'Reservations[0].Instances[0].InstanceId' \
+          --output text)
+
+        if [[ -z "$BASTION_ID" || "$BASTION_ID" == "None" ]]; then
+          echo "::error::Bastion instance not found (tag:Name=${{ inputs.bastion-tag }}, state=running)"
+          exit 1
+        fi
+        echo "BASTION_ID=$BASTION_ID" >> "$GITHUB_ENV"
+
+        EKS_ENDPOINT=$(aws eks describe-cluster \
+          --name "${{ inputs.cluster-name }}" \
+          --region "${{ inputs.region }}" \
+          --query 'cluster.endpoint' \
+          --output text | sed 's|https://||')
+
+        if [[ -z "$EKS_ENDPOINT" ]]; then
+          echo "::error::Could not resolve EKS endpoint for cluster ${{ inputs.cluster-name }}"
+          exit 1
+        fi
+        echo "EKS_ENDPOINT=$EKS_ENDPOINT" >> "$GITHUB_ENV"
+
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        CLUSTER_ARN="arn:aws:eks:${{ inputs.region }}:${ACCOUNT_ID}:cluster/${{ inputs.cluster-name }}"
+        echo "CLUSTER_ARN=$CLUSTER_ARN" >> "$GITHUB_ENV"
+        echo "::endgroup::"
+
+    - name: Start SSM port-forward tunnel
+      shell: bash
+      run: |
+        echo "Starting SSM tunnel..."
+        aws ssm start-session \
+          --target "$BASTION_ID" \
+          --region "${{ inputs.region }}" \
+          --document-name AWS-StartPortForwardingSessionToRemoteHost \
+          --parameters "portNumber=443,localPortNumber=${{ inputs.local-port }},host=$EKS_ENDPOINT" \
+          > /tmp/ssm-tunnel.log 2>&1 &
+        echo "SSM_TUNNEL_PID=$!" >> "$GITHUB_ENV"
+
+    - name: Wait for tunnel to be ready
+      shell: bash
+      run: |
+        echo "Waiting for localhost:${{ inputs.local-port }} to open..."
+        for i in $(seq 1 30); do
+          if nc -z 127.0.0.1 "${{ inputs.local-port }}" 2>/dev/null; then
+            echo "✅ Tunnel ready after ${i}s"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "::error::Tunnel did not open within 30 seconds"
+        cat /tmp/ssm-tunnel.log || true
+        exit 1
+
+    - name: Configure kubectl
+      shell: bash
+      run: |
+        aws eks update-kubeconfig --region "${{ inputs.region }}" --name "${{ inputs.cluster-name }}" --quiet
+        kubectl config set-cluster "$CLUSTER_ARN" --server="https://127.0.0.1:${{ inputs.local-port }}" --insecure-skip-tls-verify=true
+        echo "kubectl context: $(kubectl config current-context)"
+
+    - name: Verify cluster connectivity
+      shell: bash
+      run: |
+        echo "--- Cluster nodes ---"
+        kubectl get nodes -o wide

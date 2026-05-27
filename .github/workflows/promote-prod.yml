@@ -13,11 +13,11 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Image tag to promote to prod (must be deployed to staging first)'
+        description: "Image tag to promote to prod (must be deployed to staging first)"
         required: true
         type: string
       change_ticket:
-        description: 'Change ticket number (e.g. CHG-1234)'
+        description: "Change ticket number (e.g. CHG-1234)"
         required: true
         type: string
 
@@ -25,8 +25,9 @@ jobs:
   promote-prod:
     name: Deploy ${{ github.event.inputs.image_tag }} to Production
     runs-on: ubuntu-latest
-    environment: production   # REQUIRES APPROVAL from required reviewers
-                              # Set in: Settings → Environments → production → Required reviewers
+    environment:
+      production # REQUIRES APPROVAL from required reviewers
+      # Set in: Settings → Environments → production → Required reviewers
 
     steps:
       - uses: actions/checkout@v4

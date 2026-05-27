@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Full history needed for changelog generation
+          fetch-depth: 0 # Full history needed for changelog generation
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
@@ -44,7 +44,7 @@ jobs:
         run: |
           # Initialize a temporary package.json so npm knows where to install
           npm init -y
-          
+
           # Install everything locally in the runner's current directory
           npm install semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/commit-analyzer @semantic-release/release-notes-generator conventional-changelog-conventionalcommits
 
