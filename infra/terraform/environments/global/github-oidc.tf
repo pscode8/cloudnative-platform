@@ -11,11 +11,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "cloudnative-terraform-state-483518901689"    # ← your existing state bucket
-    key            = "global/github-oidc/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    use_lockfile   = true          
+    bucket       = "cloudnative-terraform-state-483518901689" # ← your existing state bucket
+    key          = "global/github-oidc/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 
@@ -26,7 +26,7 @@ provider "aws" {
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
-  github_org   = "pscode8"       
+  github_org   = "pscode8"
   repo         = "cloudnative-platform"
   cluster_name = "cloudnative-dev"
   bastion_tag  = "bastion"
