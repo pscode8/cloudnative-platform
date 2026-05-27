@@ -17,17 +17,17 @@ spec:
         app: frontend
     spec:
       containers:
-      - name: frontend
-        image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/frontend:latest
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "250m"
-            memory: "256Mi"
+        - name: frontend
+          image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
 
 ---
 apiVersion: v1
@@ -54,17 +54,17 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-  - hosts:
-    - www.yourdomain.com # <-- Update this
-    secretName: frontend-tls-secret
+    - hosts:
+        - www.yourdomain.com # <-- Update this
+      secretName: frontend-tls-secret
   rules:
-  - host: www.yourdomain.com # <-- Update this
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-service
-            port:
-              number: 80
+    - host: www.yourdomain.com # <-- Update this
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

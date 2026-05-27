@@ -3,18 +3,18 @@
 # Override per environment in values-dev.yaml / values-prod.yaml
 # Principle: prod values should be STRICTER than dev defaults.
 
-replicaCount: 2  # Always run >= 2 replicas for HA — never 1 in production
+replicaCount: 2 # Always run >= 2 replicas for HA — never 1 in production
 
 image:
-  repository: ""  # Set per environment: <account>.dkr.ecr.<region>.amazonaws.com/cloudnative/api
-  tag: "latest"   # Override with exact SHA in CI: sha-abc123f
+  repository: "" # Set per environment: <account>.dkr.ecr.<region>.amazonaws.com/cloudnative/api
+  tag: "latest" # Override with exact SHA in CI: sha-abc123f
   pullPolicy: IfNotPresent
 
 # Service — exposes pods inside the cluster
 service:
-  type: ClusterIP   # Internal only — ingress handles external traffic
+  type: ClusterIP # Internal only — ingress handles external traffic
   port: 80
-  targetPort: 8000  # FastAPI runs on 8000
+  targetPort: 8000 # FastAPI runs on 8000
 
 # Ingress — routes external traffic to this service
 ingress:
@@ -25,7 +25,7 @@ ingress:
     # cert-manager automatically provisions TLS certificate
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: api.cloudnative.dev  # Override per environment
+    - host: api.cloudnative.dev # Override per environment
       paths:
         - path: /
           pathType: Prefix
@@ -38,11 +38,11 @@ ingress:
 # Without limits: one buggy pod can consume all node resources
 # and starve other pods. This is a common k8s production incident.
 resources:
-  requests:         # Guaranteed resources — used for scheduling
-    cpu: 100m       # 100 millicores = 0.1 CPU
+  requests: # Guaranteed resources — used for scheduling
+    cpu: 100m # 100 millicores = 0.1 CPU
     memory: 128Mi
-  limits:           # Hard ceiling — pod killed if exceeded
-    cpu: 500m       # 0.5 CPU
+  limits: # Hard ceiling — pod killed if exceeded
+    cpu: 500m # 0.5 CPU
     memory: 512Mi
 
 # Horizontal Pod Autoscaler — scales pods based on CPU/memory
@@ -71,7 +71,7 @@ probes:
     failureThreshold: 3
   startup:
     path: /healthz
-    failureThreshold: 30   # 30 * 10s = 5 min max startup time
+    failureThreshold: 30 # 30 * 10s = 5 min max startup time
     periodSeconds: 10
 
 # Pod Disruption Budget — minimum pods that must stay running
@@ -90,7 +90,7 @@ env:
 # Secrets loaded from AWS Secrets Manager via External Secrets Operator
 # In Phase 6 we replace this with Vault dynamic secrets
 externalSecrets:
-  enabled: false  # Enable in Phase 6
+  enabled: false # Enable in Phase 6
   secretStoreRef: aws-secrets-manager
   refreshInterval: 1h
 
@@ -119,4 +119,4 @@ affinity:
                 operator: In
                 values:
                   - cloudnative-api
-          topologyKey: kubernetes.io/hostname  # Spread across different nodes
+          topologyKey: kubernetes.io/hostname # Spread across different nodes

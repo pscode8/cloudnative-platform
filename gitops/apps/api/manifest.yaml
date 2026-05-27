@@ -18,18 +18,18 @@ spec:
         app: api
     spec:
       containers:
-      - name: api
-        # Pulling directly from your provisioned AWS ECR
-        image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api:latest
-        ports:
-        - containerPort: 8080
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "500m"
-            memory: "256Mi"
+        - name: api
+          # Pulling directly from your provisioned AWS ECR
+          image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
 
 ---
 # 2. The Service (The internal network load balancer)
@@ -55,21 +55,21 @@ metadata:
   namespace: cloudnative-dev
   annotations:
     # This tells cert-manager to automatically fetch an SSL cert!
-    cert-manager.io/cluster-issuer: "letsencrypt-staging" 
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
 spec:
   ingressClassName: nginx
   tls:
-  - hosts:
-    - api.yourdomain.com # <-- Update this when you have a real domain
-    secretName: api-tls-secret
+    - hosts:
+        - api.yourdomain.com # <-- Update this when you have a real domain
+      secretName: api-tls-secret
   rules:
-  - host: api.yourdomain.com # <-- Update this
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 80
+    - host: api.yourdomain.com # <-- Update this
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80

@@ -123,8 +123,6 @@ services:
   #   volumes:
   #     - grafana_data:/var/lib/grafana
 
-  
-
 networks:
   platform:
     driver: bridge

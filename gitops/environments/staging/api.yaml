@@ -24,7 +24,7 @@ spec:
         - values-staging.yaml
       parameters:
         - name: image.tag
-          value: "latest"   # CD pipeline updates this
+          value: "latest" # CD pipeline updates this
 
   destination:
     server: https://kubernetes.default.svc

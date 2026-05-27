@@ -23,15 +23,15 @@ spec:
   source:
     repoURL: https://github.com/pscode8/cloudnative-platform
     targetRevision: main
-    path: gitops/environments/dev  # Watch this folder for Application manifests
+    path: gitops/environments/dev # Watch this folder for Application manifests
 
   destination:
-    server: https://kubernetes.default.svc  # In-cluster
+    server: https://kubernetes.default.svc # In-cluster
     namespace: argocd
 
   syncPolicy:
     automated:
-      prune: true     # Delete k8s resources removed from git
-      selfHeal: true  # Revert manual kubectl changes back to git state
+      prune: true # Delete k8s resources removed from git
+      selfHeal: true # Revert manual kubectl changes back to git state
     syncOptions:
       - CreateNamespace=true

@@ -43,8 +43,8 @@ spec:
 
   strategy:
     blueGreen:
-      activeService: cloudnative-api-active      # Blue — serves live traffic
-      previewService: cloudnative-api-preview    # Green — new version staging
+      activeService: cloudnative-api-active # Blue — serves live traffic
+      previewService: cloudnative-api-preview # Green — new version staging
 
       # Manual promotion: team verifies green before switching traffic
       # Set to false for fully automated (canary is better for that)

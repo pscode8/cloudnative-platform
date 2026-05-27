@@ -27,7 +27,7 @@ spec:
         - values-prod.yaml
       parameters:
         - name: image.tag
-          value: "latest"   # Promote workflow updates this
+          value: "latest" # Promote workflow updates this
 
   destination:
     server: https://kubernetes.default.svc
@@ -39,4 +39,4 @@ spec:
     - group: apps
       kind: Deployment
       jsonPointers:
-        - /spec/replicas   # HPA manages replicas — ignore drift here
+        - /spec/replicas # HPA manages replicas — ignore drift here

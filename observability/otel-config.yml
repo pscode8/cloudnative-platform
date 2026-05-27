@@ -77,19 +77,19 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers:  [otlp]
+      receivers: [otlp]
       processors: [memory_limiter, k8sattributes, resource, batch]
-      exporters:  [otlp/tempo]
+      exporters: [otlp/tempo]
 
     metrics:
-      receivers:  [otlp, prometheus]
+      receivers: [otlp, prometheus]
       processors: [memory_limiter, resource, batch]
-      exporters:  [prometheus]
+      exporters: [prometheus]
 
     logs:
-      receivers:  [otlp]
+      receivers: [otlp]
       processors: [memory_limiter, k8sattributes, resource, batch]
-      exporters:  [loki]
+      exporters: [loki]
 
   telemetry:
     logs:

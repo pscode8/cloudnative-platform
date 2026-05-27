@@ -24,15 +24,15 @@ spec:
   source:
     repoURL: https://github.com/pscode8/cloudnative-platform
     targetRevision: main
-    path: charts/api  # Helm chart location in repo
+    path: charts/api # Helm chart location in repo
     helm:
       valueFiles:
         - values.yaml
-        - values-dev.yaml  # Dev overrides
+        - values-dev.yaml # Dev overrides
       parameters:
         # CI updates this on every deploy
         - name: image.tag
-          value: "latest"  # CI replaces with: sha-abc123f
+          value: "latest" # CI replaces with: sha-abc123f
 
   destination:
     server: https://kubernetes.default.svc

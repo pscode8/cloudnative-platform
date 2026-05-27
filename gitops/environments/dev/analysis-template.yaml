@@ -24,7 +24,7 @@ spec:
       interval: 1m
       # How many consecutive failures before marking as Failed
       failureLimit: 3
-      successCondition: result[0] >= 0.95   # 95% success rate minimum
+      successCondition: result[0] >= 0.95 # 95% success rate minimum
       provider:
         prometheus:
           address: http://prometheus-operated.monitoring:9090
@@ -43,7 +43,7 @@ spec:
     - name: latency-p99
       interval: 1m
       failureLimit: 3
-      successCondition: result[0] <= 0.5   # 500ms in seconds
+      successCondition: result[0] <= 0.5 # 500ms in seconds
       provider:
         prometheus:
           address: http://prometheus-operated.monitoring:9090

@@ -7,17 +7,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "cloudnative-api.fullname" . }}
-  labels:
-    {{- include "cloudnative-api.labels" . | nindent 4 }}
+  name: { { include "cloudnative-api.fullname" . } }
+  labels: { { - include "cloudnative-api.labels" . | nindent 4 } }
 spec:
-  type: {{ .Values.service.type }}
+  type: { { .Values.service.type } }
   selector:
-    {{- include "cloudnative-api.selectorLabels" . | nindent 4 }}
+    { { - include "cloudnative-api.selectorLabels" . | nindent 4 } }
     # Only routes to pods matching these labels
     # Automatically excludes pods that fail readiness probes
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
+    - port: { { .Values.service.port } }
+      targetPort: { { .Values.service.targetPort } }
       protocol: TCP
       name: http

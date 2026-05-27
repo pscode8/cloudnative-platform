@@ -17,12 +17,12 @@ spec:
         app: worker
     spec:
       containers:
-      - name: worker
-        image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/worker:latest
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
+        - name: worker
+          image: 483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/worker:latest
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

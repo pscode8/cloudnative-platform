@@ -40,7 +40,7 @@ configs:
 
   # RBAC — who can do what in ArgoCD
   rbac:
-    policy.default: role:readonly  # Default: everyone can view
+    policy.default: role:readonly # Default: everyone can view
     policy.csv: |
       # Admins can sync and manage apps
       p, role:admin, applications, *, */*, allow

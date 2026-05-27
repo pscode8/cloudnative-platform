@@ -61,11 +61,11 @@ metadata:
   namespace: cloudnative-dev
 spec:
   hard:
-    requests.cpu: "4"        # Total CPU requests across all pods
+    requests.cpu: "4" # Total CPU requests across all pods
     requests.memory: 4Gi
     limits.cpu: "8"
     limits.memory: 8Gi
-    pods: "20"               # Max 20 pods in dev namespace
+    pods: "20" # Max 20 pods in dev namespace
     services: "10"
 
 ---

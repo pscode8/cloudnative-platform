@@ -30,12 +30,12 @@ spec:
 
   # Cluster-scoped resources this project can manage
   clusterResourceWhitelist:
-    - group: ''
+    - group: ""
       kind: Namespace
     - group: networking.k8s.io
       kind: IngressClass
 
   # Namespace-scoped resources allowed
   namespaceResourceWhitelist:
-    - group: '*'
-      kind: '*'
+    - group: "*"
+      kind: "*"

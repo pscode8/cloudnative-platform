@@ -2,12 +2,13 @@
 # Production: high availability, strict resources, autoscaling on.
 # Every setting here is a deliberate production-readiness decision.
 
-replicaCount: 3  # 3 replicas across 3 AZs — survive 1 AZ failure
+replicaCount: 3 # 3 replicas across 3 AZs — survive 1 AZ failure
 
 image:
   repository: "483518901689.dkr.ecr.us-east-2.amazonaws.com/cloudnative/api"
-  tag: ""  # Always set explicitly in CI — never deploy 'latest' to prod
-           # CI sets: --set image.tag=sha-abc123f
+  tag:
+    "" # Always set explicitly in CI — never deploy 'latest' to prod
+    # CI sets: --set image.tag=sha-abc123f
 
 ingress:
   hosts:
@@ -25,7 +26,7 @@ resources:
     cpu: 200m
     memory: 256Mi
   limits:
-    cpu: 1000m    # 1 full CPU max
+    cpu: 1000m # 1 full CPU max
     memory: 1Gi
 
 autoscaling:
@@ -35,8 +36,8 @@ autoscaling:
 
 podDisruptionBudget:
   enabled: true
-  minAvailable: 2  # Keep at least 2 pods during node drain
+  minAvailable: 2 # Keep at least 2 pods during node drain
 
 env:
   ENV: "prod"
-  LOG_LEVEL: "INFO"  # No DEBUG in prod — performance + log cost
+  LOG_LEVEL: "INFO" # No DEBUG in prod — performance + log cost

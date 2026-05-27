@@ -11,16 +11,16 @@
 
 - name: Apply common hardening to all servers
   hosts: all
-  become: true  # sudo
+  become: true # sudo
   gather_facts: true
 
   roles:
-    - role: common        # OS hardening, SSH, firewall, fail2ban
-    - role: monitoring-agent  # Node exporter for Prometheus (Phase 5)
+    - role: common # OS hardening, SSH, firewall, fail2ban
+    - role: monitoring-agent # Node exporter for Prometheus (Phase 5)
 
 - name: Configure Docker hosts
   hosts: docker_hosts
   become: true
 
   roles:
-    - role: docker  # Install Docker + Compose, add users to docker group
+    - role: docker # Install Docker + Compose, add users to docker group
