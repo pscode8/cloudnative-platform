@@ -1,0 +1,6 @@
+cat > apps/frontend/package.json << 'EOF'
+{
+  "name": "cloudnative-frontend",
+  "version": "0.1.0"
+}
+EOF

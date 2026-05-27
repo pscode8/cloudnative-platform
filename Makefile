@@ -38,3 +38,8 @@ db-migrate: ## Run Alembic migrations
 
 db-shell: ## Open psql shell
 	docker compose exec postgres psql -U appuser -d appdb
+connect:
+	@k8s/scripts/eks-tunnel.sh start
+
+disconnect:
+	@k8s/scripts/eks-tunnel.sh stop
