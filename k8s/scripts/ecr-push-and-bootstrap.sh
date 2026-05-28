@@ -1,24 +1,13 @@
-#!/bin/bash
-# ─────────────────────────────────────────────────────────────────
-# ecr-push-and-bootstrap.sh
-# Builds all app images, pushes to ECR, then bootstraps the cluster
-#
-# Usage:
-#   chmod +x k8s/scripts/ecr-push-and-bootstrap.sh
-#   ./k8s/scripts/ecr-push-and-bootstrap.sh
-# ─────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-# ── Config ────────────────────────────────────────────────────────
 REGION="us-east-2"
 ACCOUNT_ID="483518901689"
 CLUSTER_NAME="cloudnative-dev"
-BASTION_TAG="bastion"
+BASTION_TAG="cloudnative-dev-bastion"
 LOCAL_PORT="6443"
 REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 IMAGE_TAG="${1:-$(git rev-parse --short HEAD)}"
 
-# ECR repo names
 API_REPO="cloudnative/api"
 FRONTEND_REPO="cloudnative/frontend"
 WORKER_REPO="cloudnative/worker"
@@ -29,7 +18,6 @@ success() { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-# ── 1. ECR Login ──────────────────────────────────────────────────
 ecr_login() {
   info "Logging into ECR..."
   aws ecr get-login-password --region "$REGION" \
@@ -37,35 +25,40 @@ ecr_login() {
   success "ECR login successful"
 }
 
-# ── 2. Build and push a single image ─────────────────────────────
 build_and_push() {
   local app=$1
   local repo=$2
   local dockerfile_path="apps/${app}/Dockerfile"
 
   if [[ ! -f "$dockerfile_path" ]]; then
-    warn "No Dockerfile found for $app at $dockerfile_path — skipping"
+    warn "No Dockerfile found for $app — skipping"
     return
   fi
 
-  info "Building $app..."
   local target_flag=""
-   [[ "$app" == "api" ]] && target_flag="--target prod"
+  [[ "$app" == "api" ]] && target_flag="--target prod"
 
+  info "Building $app..."
   docker build \
     $target_flag \
     -t "${REGISTRY}/${repo}:${IMAGE_TAG}" \
-    -t "${REGISTRY}/${repo}:latest" \
     -f "$dockerfile_path" \
     "apps/${app}"
 
-  info "Pushing $app:${IMAGE_TAG}..."
-  docker push "${REGISTRY}/${repo}:${IMAGE_TAG}"
-  docker push "${REGISTRY}/${repo}:latest"
-  success "$app pushed → ${REGISTRY}/${repo}:${IMAGE_TAG}"
+  # Skip push if tag already exists in ECR (immutable tags)
+  if aws ecr describe-images \
+      --repository-name "$repo" \
+      --image-ids imageTag="$IMAGE_TAG" \
+      --region "$REGION" \
+      &>/dev/null; then
+    warn "$app:${IMAGE_TAG} already exists in ECR — skipping push"
+  else
+    info "Pushing $app:${IMAGE_TAG}..."
+    docker push "${REGISTRY}/${repo}:${IMAGE_TAG}"
+    success "$app pushed → ${REGISTRY}/${repo}:${IMAGE_TAG}"
+  fi
 }
 
-# ── 3. Start SSM tunnel ───────────────────────────────────────────
 start_tunnel() {
   info "Starting SSM tunnel to EKS..."
 
@@ -91,7 +84,7 @@ start_tunnel() {
     --region "$REGION" \
     --document-name AWS-StartPortForwardingSessionToRemoteHost \
     --parameters "portNumber=443,localPortNumber=${LOCAL_PORT},host=${EKS_ENDPOINT}" \
-    > /tmp/ssm-tunnel.log 2>&1 &
+    2>/tmp/ssm-tunnel.log &
   SSM_PID=$!
   echo "$SSM_PID" > /tmp/ssm-tunnel.pid
 
@@ -99,22 +92,18 @@ start_tunnel() {
   for i in $(seq 1 30); do
     if nc -z 127.0.0.1 "$LOCAL_PORT" 2>/dev/null; then
       success "Tunnel ready (${i}s)"
-      break
+      return
     fi
     sleep 1
     echo -n "."
-    if [[ $i -eq 30 ]]; then
-      echo
-      error "Tunnel did not open. Check /tmp/ssm-tunnel.log"
-    fi
   done
   echo
+  error "Tunnel did not open. Check /tmp/ssm-tunnel.log"
 }
 
-# ── 4. Configure kubectl ──────────────────────────────────────────
 configure_kubectl() {
   info "Configuring kubectl..."
-  aws eks update-kubeconfig --region "$REGION" --name "$CLUSTER_NAME" --quiet
+  aws eks update-kubeconfig --region "$REGION" --name "$CLUSTER_NAME"
 
   ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
   CLUSTER_ARN="arn:aws:eks:${REGION}:${ACCOUNT_ID}:cluster/${CLUSTER_NAME}"
@@ -123,11 +112,10 @@ configure_kubectl() {
     --server="https://127.0.0.1:${LOCAL_PORT}" \
     --insecure-skip-tls-verify=true
 
-  success "kubectl configured → $(kubectl config current-context)"
+  success "kubectl configured"
   kubectl get nodes
 }
 
-# ── 5. Run bootstrap ──────────────────────────────────────────────
 run_bootstrap() {
   info "Running cluster bootstrap..."
   chmod +x k8s/bootstrap.sh
@@ -135,7 +123,6 @@ run_bootstrap() {
   success "Bootstrap complete!"
 }
 
-# ── Cleanup on exit ───────────────────────────────────────────────
 cleanup() {
   if [[ -f /tmp/ssm-tunnel.pid ]]; then
     kill "$(cat /tmp/ssm-tunnel.pid)" 2>/dev/null || true
@@ -145,7 +132,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# ── Main ──────────────────────────────────────────────────────────
 echo ""
 echo "========================================"
 echo " ECR Push + EKS Bootstrap"
@@ -157,13 +143,12 @@ ecr_login
 build_and_push "api"      "$API_REPO"
 build_and_push "frontend" "$FRONTEND_REPO"
 build_and_push "worker"   "$WORKER_REPO"
-
 start_tunnel
 configure_kubectl
 run_bootstrap
 
 echo ""
 success "All done!"
-echo "  Images pushed to ECR with tag: $IMAGE_TAG"
-echo "  Cluster bootstrapped and ready"
-echo "  ArgoCD UI: https://argocd.cloudnative.dev"
+SCRIPT
+
+chmod +x ~/projects/cloudnative-platform/k8s/scripts/ecr-push-and-bootstrap.sh
