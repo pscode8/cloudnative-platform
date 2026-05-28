@@ -6,11 +6,6 @@
 #
 # Install: helm install argocd argo/argo-cd -n argocd -f this-file.yaml
 
-global:
-  # Image tag pinned — never use latest in production tooling
-  image:
-    tag: "v2.11.0"
-
 server:
   # Expose ArgoCD UI via ingress
   ingress:
@@ -18,8 +13,8 @@ server:
     ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     hosts:
       - argocd.cloudnative.dev
     tls:
